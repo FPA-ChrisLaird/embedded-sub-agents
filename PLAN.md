@@ -49,7 +49,7 @@ This plan implements the product-agnostic embedded subagent pilot specified in [
 
 - [ ] Evaluate the pilot before expanding the suite.
   - Measure whether the hand-offs preserve primary-session context, avoid duplicated investigation, and identify useful evidence.
-  - Compare model quality and cost for the assigned roles, including GPT-5.6 Terra, GPT-5.6 Luna, and Grok 4.6.
+  - Compare GPT-5.6 Terra and GPT-5.6 Luna for their assigned roles. Use Grok 4.6 only as an independent counter-review for high-consequence findings or difficult diagnoses, and GPT-5.6 Sol only as a final escalation when a high-consequence multi-module decision remains uncertain.
   - Refine prompts, `steps`, and the three-agent fan-out limit based on observed behaviour.
   - Do not grant command execution because a prompt requests it; use explicit permission changes justified by pilot evidence.
 
