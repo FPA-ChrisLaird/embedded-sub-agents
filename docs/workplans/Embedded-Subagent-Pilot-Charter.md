@@ -1,4 +1,4 @@
-# WIP-embedded-subagent-pilot: Embedded Subagent Pilot
+# Embedded Subagent Pilot Charter
 
 ## Goal
 
@@ -37,7 +37,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 ## Constraints & Assumptions
 
 - Agent definitions are global OpenCode configuration so they are reusable rather than tied to a product or toolchain.
-- The secret-free agent definitions, shared GitHub-read-access plugin, and depth configuration are version-controlled in this repository as the canonical source, then installed into global OpenCode configuration for reuse across projects.
+- The secret-free agent definitions, shared repository-inspection plugin, and depth configuration are version-controlled in this repository as the canonical source, then installed into global OpenCode configuration for reuse across projects.
 - Read-only agents may use workspace read, glob, grep, and list operations, plus allow-listed read-only `gh` commands and exact non-mutating Git inspection commands applied by the shared plugin. They must deny edit, task, and all other shell permissions.
 - Keep source formatting deterministic through project-selected tooling such as `clang-format` or `uncrustify`.
 
@@ -68,7 +68,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 
 ## Rollback
 
-Remove the added global agent files and the corresponding `agent` and `subagent_depth` configuration entries, then restart OpenCode.
+Remove the added global agent files and repository-inspection plugin, then remove the corresponding `plugin` and `subagent_depth` configuration entries before restarting OpenCode.
 
 ## Open Questions
 

@@ -1,6 +1,6 @@
 # Embedded Subagent Pilot Plan
 
-This plan implements the product-agnostic embedded subagent pilot specified in [WIP-embedded-subagent-pilot-Spec.md](docs/workplans/WIP-embedded-subagent-pilot-Spec.md) and described in [README.md](README.md). It is a configuration rollout, not a firmware change.
+This plan implements the product-agnostic embedded subagent pilot chartered in [Embedded-Subagent-Pilot-Charter.md](docs/workplans/Embedded-Subagent-Pilot-Charter.md) and described in [README.md](README.md). It is a configuration rollout, not a firmware change.
 
 ## Decisions
 
@@ -26,13 +26,13 @@ This plan implements the product-agnostic embedded subagent pilot specified in [
   - `embedded-c-quality-reviewer.md`: review correctness, concurrency, timing, integer safety, undefined behavior, and static-analysis evidence.
   - `embedded-build-analyzer.md`: trace Makefiles, scripts, toolchains, targets, artefacts, and hazardous commands.
   - Set `mode: subagent`, `permission.task: deny`, and `edit: deny` on each agent.
-  - Allow workspace read, glob, grep, and list operations. The shared GitHub plugin appends read-only `gh` and exact non-mutating Git inspection command allow-lists; it denies all other shell commands.
+  - Allow workspace read, glob, grep, and list operations. The shared repository-inspection plugin appends read-only `gh` and exact non-mutating Git inspection command allow-lists; it denies all other shell commands.
   - Set `steps: 20` for the quality reviewer and `steps: 12` for the other analysis agents.
   - Require every response to state scope, evidence, assumptions, risks, and recommended next action.
 
 - [x] Add and version-control the delegation configuration in `.opencode/opencode.json`, then merge it into `C:\Users\lairdc\.config\opencode\opencode.json`.
   - Set `subagent_depth` to `1`.
-  - Load the local shared GitHub-read-access plugin, then install its matching global file.
+  - Load the local shared repository-inspection plugin, then install its matching global file.
   - Centralize baseline shell policy, firmware/build safety denials, GitHub CLI access, and exact non-mutating Git inspection rules in the plugin: primary mutation-shaped API calls require approval; subagent mutation-shaped API calls are denied.
   - Add an explicit task allow-list to the `embedded-engineer` agent definition with a catch-all deny rule first.
   - Keep all non-pilot agents unavailable to automatic delegation.

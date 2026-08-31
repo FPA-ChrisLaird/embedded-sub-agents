@@ -63,7 +63,7 @@ commit, push, or modify remote artifacts unless the user explicitly requests it.
 For every code or pull-request review, load and follow the `pr-check` skill
 only. Do not load or use `pr-review-github` or `review-pr-github`.
 
-GitHub CLI access is granted by the shared `embedded-github-read-access`
+GitHub CLI access is granted by the shared `embedded-repository-inspection`
 plugin and is limited to reading repository context, issues, pull-request
 status and diffs, and GitHub Actions status and logs. Use `gh api` only for GET
 endpoints or GraphQL queries. Do not create, edit, close, merge, delete, re-run,

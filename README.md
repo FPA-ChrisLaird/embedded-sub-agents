@@ -7,11 +7,13 @@ Product-agnostic OpenCode agent and subagent roles for embedded C/C++ software d
 This repository is the version-controlled source of truth for the initial pilot. The executable configuration is in `.opencode/` and contains no secrets:
 
 - `.opencode/opencode.json` sets `subagent_depth` to `1` and loads the local plugin.
-- `.opencode/plugins/embedded-github-read-access.ts` centrally applies the read-only GitHub CLI policy.
+- `.opencode/plugins/embedded-repository-inspection.ts` centrally applies the read-only GitHub CLI and Git inspection policy.
 - `.opencode/agents/embedded-engineer.md` defines the primary coordinator.
 - `.opencode/agents/embedded-architecture-analyst.md` defines the read-only architecture analyst.
 - `.opencode/agents/embedded-c-quality-reviewer.md` defines the read-only quality reviewer.
 - `.opencode/agents/embedded-build-analyzer.md` defines the read-only Make and build-system analyst.
+- `docs/workplans/Embedded-Subagent-Pilot-Charter.md` defines the pilot's purpose, boundaries, and acceptance criteria.
+- `PLAN.md` tracks the pilot's remaining verification and evaluation tasks.
 
 OpenCode automatically loads this configuration when started in this repository. It deliberately does not set `default_agent`, so existing user preferences remain unchanged; select `embedded-engineer` explicitly when using the pilot. To install the same suite globally, copy the agent files and plugin to `~/.config/opencode/`, then merge the `subagent_depth` and `plugin` settings into `~/.config/opencode/opencode.json`; do not copy credentials or provider settings from another configuration. Quit and restart OpenCode after any configuration change.
 

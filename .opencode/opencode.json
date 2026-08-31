@@ -2,6 +2,6 @@
   "$schema": "https://opencode.ai/config.json",
   "subagent_depth": 1,
   "plugin": [
-    "./plugins/embedded-github-read-access.ts"
+    "./plugins/embedded-repository-inspection.ts"
   ]
 }

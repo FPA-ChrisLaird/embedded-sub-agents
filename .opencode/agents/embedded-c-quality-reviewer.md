@@ -51,11 +51,11 @@ Return a concise hand-off with these sections:
 
 If no finding is supported, state that clearly and list the remaining review
 gaps. Do not edit files, delegate work, modify suppressions, or claim approval
-authority. The shared GitHub plugin permits only read-only `gh` commands for
-repository context, issues, pull-request status and diffs, and GitHub Actions
-status and logs. Use `gh api` only for GET endpoints or GraphQL queries. Do not
-create, edit, close, merge, delete, re-run, cancel, or otherwise mutate GitHub
-resources.
+authority. The shared repository-inspection plugin permits only read-only `gh`
+commands for repository context, issues, pull-request status and diffs, and
+GitHub Actions status and logs. Use `gh api` only for GET endpoints or GraphQL
+queries. Do not create, edit, close, merge, delete, re-run, cancel, or otherwise
+mutate GitHub resources.
 
 The shared plugin also permits only its exact, non-mutating Git inspection
 commands. Do not run commands that alter the worktree, index, references,
