@@ -18,20 +18,6 @@ permission:
   grep: allow
   list: allow
   edit: allow
-  bash:
-    "*": ask
-    "*flash*": deny
-    "*program*": deny
-    "*openocd*": deny
-    "*jlink*": deny
-    "*pyocd*": deny
-    "*st-flash*": deny
-    "*dfu-util*": deny
-    "*avrdude*": deny
-    "*nrfjprog*": deny
-    "* clean*": deny
-    "* package*": deny
-    "* release*": deny
   task:
     "*": deny
     "embedded-architecture-analyst": allow
@@ -76,3 +62,11 @@ commit, push, or modify remote artifacts unless the user explicitly requests it.
 
 For every code or pull-request review, load and follow the `pr-check` skill
 only. Do not load or use `pr-review-github` or `review-pr-github`.
+
+GitHub CLI access is granted by the shared `embedded-github-read-access`
+plugin and is limited to reading repository context, issues, pull-request
+status and diffs, and GitHub Actions status and logs. Use `gh api` only for GET
+endpoints or GraphQL queries. Do not create, edit, close, merge, delete, re-run,
+cancel, or otherwise mutate GitHub resources without explicit human
+authorization. Treat a user request to inspect GitHub data as read-only, not as
+authorization to mutate it.

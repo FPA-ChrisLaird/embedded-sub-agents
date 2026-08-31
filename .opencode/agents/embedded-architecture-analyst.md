@@ -18,10 +18,11 @@ permission:
   grep: allow
   list: allow
   edit: deny
-  bash: deny
   task: deny
   external_directory: deny
-  skill: deny
+  skill:
+    "*": deny
+    "access-github": allow
   webfetch: deny
   websearch: deny
   lsp: deny
@@ -49,5 +50,8 @@ Return a concise hand-off with these sections:
 5. Risks and trade-offs
 6. Recommended next action
 
-Do not edit files, execute commands, delegate work, or claim final design
-authority.
+Do not edit files, delegate work, or claim final design authority. The shared
+GitHub plugin permits only read-only `gh` commands for repository context,
+issues, pull-request status and diffs, and GitHub Actions status and logs. Use
+`gh api` only for GET endpoints or GraphQL queries. Do not create, edit, close,
+merge, delete, re-run, cancel, or otherwise mutate GitHub resources.

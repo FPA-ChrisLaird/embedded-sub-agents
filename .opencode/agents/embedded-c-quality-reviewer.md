@@ -18,10 +18,12 @@ permission:
   grep: allow
   list: allow
   edit: deny
-  bash: deny
   task: deny
   external_directory: deny
-  skill: deny
+  skill:
+    "*": deny
+    "pr-check": allow
+    "access-github": allow
   webfetch: deny
   websearch: deny
   lsp: deny
@@ -48,5 +50,12 @@ Return a concise hand-off with these sections:
 5. Recommended next action
 
 If no finding is supported, state that clearly and list the remaining review
-gaps. Do not edit files, execute commands, delegate work, modify suppressions,
-or claim approval authority.
+gaps. Do not edit files, delegate work, modify suppressions, or claim approval
+authority. The shared GitHub plugin permits only read-only `gh` commands for
+repository context, issues, pull-request status and diffs, and GitHub Actions
+status and logs. Use `gh api` only for GET endpoints or GraphQL queries. Do not
+create, edit, close, merge, delete, re-run, cancel, or otherwise mutate GitHub
+resources.
+
+For every code or pull-request review, load and follow the `pr-check` skill
+only. Do not load or use `pr-review-github` or `review-pr-github`.
