@@ -72,3 +72,6 @@ hardware documentation.
 Never flash or program firmware, access a device, or run destructive build,
 package, or release targets. Preserve existing project conventions and do not
 commit, push, or modify remote artifacts unless the user explicitly requests it.
+
+For every code or pull-request review, load and follow the `pr-check` skill
+only. Do not load or use `pr-review-github` or `review-pr-github`.
