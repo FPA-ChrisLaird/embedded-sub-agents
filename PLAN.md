@@ -9,7 +9,8 @@ This plan implements the product-agnostic embedded subagent pilot specified in [
 - Start with four roles: `embedded-engineer`, `embedded-architecture-analyst`, `embedded-c-quality-reviewer`, and `embedded-build-analyzer`.
 - Make analysis roles read-only. Add `embedded-c-implementer` only after the analysis pilot produces reliable, useful hand-offs.
 - Keep hardware programming, device I/O, and destructive build targets denied for every role.
-- Do not enable Jira, Confluence, or Xray retrieval for subagents during the initial pilot. Allow only read-only GitHub CLI retrieval for repository context, issues, pull-request status and diffs, and Actions status and logs.
+- Do not enable Jira, Confluence, or Xray retrieval for subagents during the initial pilot. Allow only read-only GitHub CLI retrieval plus exact non-mutating Git inspection commands for repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
+- Use GPT-5.6 Terra with `xhigh` for `embedded-engineer` and `embedded-c-quality-reviewer`, GPT-5.6 Terra with `medium` for `embedded-architecture-analyst`, and GPT-5.6 Luna with `medium` for `embedded-build-analyzer`.
 - Do not create embedded-specific skills until repeated work demonstrates the organisational conventions they must encode.
 
 ## Tasks
@@ -25,21 +26,22 @@ This plan implements the product-agnostic embedded subagent pilot specified in [
   - `embedded-c-quality-reviewer.md`: review correctness, concurrency, timing, integer safety, undefined behavior, and static-analysis evidence.
   - `embedded-build-analyzer.md`: trace Makefiles, scripts, toolchains, targets, artefacts, and hazardous commands.
   - Set `mode: subagent`, `permission.task: deny`, and `edit: deny` on each agent.
-  - Allow workspace read, glob, grep, and list operations. The shared GitHub plugin appends a read-only `gh` command allow-list; it denies all other shell commands.
+  - Allow workspace read, glob, grep, and list operations. The shared GitHub plugin appends read-only `gh` and exact non-mutating Git inspection command allow-lists; it denies all other shell commands.
   - Set `steps: 20` for the quality reviewer and `steps: 12` for the other analysis agents.
   - Require every response to state scope, evidence, assumptions, risks, and recommended next action.
 
 - [x] Add and version-control the delegation configuration in `.opencode/opencode.json`, then merge it into `C:\Users\lairdc\.config\opencode\opencode.json`.
   - Set `subagent_depth` to `1`.
   - Load the local shared GitHub-read-access plugin, then install its matching global file.
+  - Centralize baseline shell policy, firmware/build safety denials, GitHub CLI access, and exact non-mutating Git inspection rules in the plugin: primary mutation-shaped API calls require approval; subagent mutation-shaped API calls are denied.
   - Add an explicit task allow-list to the `embedded-engineer` agent definition with a catch-all deny rule first.
   - Keep all non-pilot agents unavailable to automatic delegation.
   - Preserve existing configuration and validate against the OpenCode schema before saving.
 
 - [ ] Restart the interactive OpenCode session and verify agent discovery.
-  - A fresh `opencode agent list` process has confirmed agent discovery.
+  - [x] A fresh, global-only `opencode agent list` process has confirmed agent discovery and the effective shared GitHub permission rules.
   - Confirm the primary agent and three analysis subagents are visible with the intended modes and permissions.
-  - Confirm analysis subagents cannot edit, run local shell commands, or launch child agents; confirm they can run only the allow-listed read-only `gh` commands.
+  - Confirm analysis subagents cannot edit, run local shell commands, or launch child agents; confirm they can run only the allow-listed read-only `gh` and Git inspection commands.
   - Confirm the primary agent can delegate only to the configured analysis roles.
 
 - [ ] Run the pilot against representative embedded-C tasks.
@@ -71,7 +73,7 @@ This plan implements the product-agnostic embedded subagent pilot specified in [
 - The OpenCode configuration validates and loads after restart.
 - `subagent_depth` is `1` and every subagent has `permission.task: deny`.
 - The primary agent's task permission has a deny-by-default allow-list.
-- Read-only pilot agents can inspect the workspace, use allow-listed read-only GitHub CLI commands, but cannot edit files, execute local shell commands, or create nested subagents.
+- Read-only pilot agents can inspect the workspace, use allow-listed read-only GitHub CLI and exact Git inspection commands, but cannot edit files, execute local shell commands, or create nested subagents.
 - Pilot reports are concise, evidence-based, and useful to the primary engineer without requiring repeated repository exploration.
 - No role can flash firmware, program devices, access device I/O, or run destructive build targets.
 

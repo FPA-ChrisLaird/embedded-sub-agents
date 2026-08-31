@@ -63,6 +63,21 @@ const GITHUB_READ_PERMISSIONS: BashPermissions = {
   "gh api graphql *": "allow",
 }
 
+const GIT_INSPECTION_PERMISSIONS: BashPermissions = {
+  "git --no-optional-locks --no-pager status --short --branch": "allow",
+  "git --no-pager diff --no-ext-diff --check": "allow",
+  "git --no-pager diff --cached --no-ext-diff --check": "allow",
+  "git --no-pager diff --no-ext-diff --stat": "allow",
+  "git --no-pager diff --cached --no-ext-diff --stat": "allow",
+  "git --no-pager diff --no-ext-diff --name-only": "allow",
+  "git --no-pager diff --cached --no-ext-diff --name-only": "allow",
+  "git --no-pager diff --quiet": "allow",
+  "git --no-pager diff --cached --quiet": "allow",
+  "git --no-pager branch --show-current": "allow",
+  "git rev-parse --show-toplevel": "allow",
+  "git --no-pager log --oneline -10": "allow",
+}
+
 function getApiMutationGuards(action: PermissionAction): BashPermissions {
   return {
     "gh api * -X*": action,
@@ -129,6 +144,7 @@ const plugin: Plugin = async () => ({
         agentName === "embedded-engineer" ? "ask" : "deny"
 
       Object.assign(permissions, GITHUB_READ_PERMISSIONS)
+      Object.assign(permissions, GIT_INSPECTION_PERMISSIONS)
       Object.assign(permissions, getApiMutationGuards(mutationAction))
       Object.assign(permissions, GITHUB_GRAPHQL_QUERY_PERMISSIONS)
       Object.assign(permissions, getGraphqlMutationGuards(mutationAction))

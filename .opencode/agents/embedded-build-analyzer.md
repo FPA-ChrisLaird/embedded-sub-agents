@@ -56,3 +56,7 @@ context, issues, pull-request status and diffs, and GitHub Actions status and
 logs. Use `gh api` only for GET endpoints or GraphQL queries. Do not create,
 edit, close, merge, delete, re-run, cancel, or otherwise mutate GitHub
 resources.
+
+The shared plugin also permits only its exact, non-mutating Git inspection
+commands. Do not run commands that alter the worktree, index, references,
+remotes, configuration, or credentials.

@@ -70,3 +70,8 @@ endpoints or GraphQL queries. Do not create, edit, close, merge, delete, re-run,
 cancel, or otherwise mutate GitHub resources without explicit human
 authorization. Treat a user request to inspect GitHub data as read-only, not as
 authorization to mutate it.
+
+The shared plugin also permits only its exact, non-mutating Git inspection
+commands. Do not broaden Git permissions or run commands that alter the
+worktree, index, references, remotes, configuration, or credentials without
+explicit human authorization.

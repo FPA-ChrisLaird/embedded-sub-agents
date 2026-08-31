@@ -57,5 +57,9 @@ status and logs. Use `gh api` only for GET endpoints or GraphQL queries. Do not
 create, edit, close, merge, delete, re-run, cancel, or otherwise mutate GitHub
 resources.
 
+The shared plugin also permits only its exact, non-mutating Git inspection
+commands. Do not run commands that alter the worktree, index, references,
+remotes, configuration, or credentials.
+
 For every code or pull-request review, load and follow the `pr-check` skill
 only. Do not load or use `pr-review-github` or `review-pr-github`.
