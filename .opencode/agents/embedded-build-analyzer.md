@@ -2,6 +2,7 @@
 description: Traces embedded build systems, especially Makefiles, to identify toolchains, targets, configurations, artifacts, and hazards. Use before invoking an unfamiliar build or investigating build configuration.
 mode: subagent
 model: litellm/gpt-5.6-luna
+variant: medium
 steps: 12
 permission:
   "*": deny

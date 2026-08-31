@@ -2,6 +2,7 @@
 description: Performs evidence-based embedded C/C++ quality reviews for correctness, concurrency, timing, and static-analysis concerns. Use to independently review a bounded change or suspected firmware defect.
 mode: subagent
 model: litellm/gpt-5.6-terra
+variant: xhigh
 steps: 20
 permission:
   "*": deny
