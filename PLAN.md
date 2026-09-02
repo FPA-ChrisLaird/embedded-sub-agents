@@ -8,15 +8,15 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 - Set `subagent_depth` to `1`: the primary agent may delegate, but no subagent may delegate further.
 - Start with four roles: `embedded-engineer`, `embedded-architecture-analyst`, `embedded-c-quality-reviewer`, and `embedded-build-analyzer`.
 - Make analysis roles read-only. Add `embedded-c-implementer` only after the analysis pilot produces reliable, useful hand-offs.
-- Keep hardware programming, device I/O, and destructive build targets denied for every role.
+- Prohibit hardware programming, device I/O, and destructive build targets for every role. The primary requires approval for non-allow-listed commands; recognised flashing, programming, clean, package, and release patterns remain hard-denied.
 - Do not enable Jira, Confluence, or Xray retrieval for subagents during the initial pilot. Allow only read-only GitHub CLI retrieval plus exact non-mutating Git inspection commands for repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
-- Use GPT-5.6 Terra with `xhigh` for `embedded-engineer` and `embedded-c-quality-reviewer`, GPT-5.6 Terra with `medium` for `embedded-architecture-analyst`, and GPT-5.6 Luna with `medium` for `embedded-build-analyzer`.
+- Use GPT-5.6 Terra with `xhigh` for `embedded-engineer`, `embedded-c-quality-reviewer`, and `embedded-architecture-analyst`; use GPT-5.6 Luna with `medium` for `embedded-build-analyzer`.
 - Do not create embedded-specific skills until repeated work demonstrates the organisational conventions they must encode.
 
 ## Tasks
 
 - [x] Create and version-control `embedded-engineer` in `.opencode/agents/`, then install it globally at `C:\Users\lairdc\.config\opencode\agents\`.
-  - Configure it as a primary agent with `steps: 30`.
+  - Configure it as an unlimited primary agent so it can reconcile and verify specialist findings.
   - Allow only the defined analysis agents through `permission.task`; require approval for any future implementer delegation.
   - Limit each user request to three independent subagents and require focused inputs and concise hand-offs.
   - Preserve final responsibility for requirements, decisions, integration, and verification.
@@ -27,13 +27,13 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
   - `embedded-build-analyzer.md`: trace Makefiles, scripts, toolchains, targets, artefacts, and hazardous commands.
   - Set `mode: subagent`, `permission.task: deny`, and `edit: deny` on each agent.
   - Allow workspace read, glob, grep, and list operations. The shared repository-inspection plugin appends read-only `gh` and exact non-mutating Git inspection command allow-lists; it denies all other shell commands.
-  - Set `steps: 20` for the quality reviewer and `steps: 12` for the other analysis agents.
-  - Require every response to state scope, evidence, assumptions, risks, and recommended next action.
+  - Set `steps: 20` for the architecture analyst and quality reviewer, and `steps: 12` for the build analyzer.
+  - Require every response to state scope, evidence, assumptions, risks, and recommended next action. Quality reviews must separately state residual risks.
 
 - [x] Add and version-control the delegation configuration in `.opencode/opencode.json`, then merge it into `C:\Users\lairdc\.config\opencode\opencode.json`.
   - Set `subagent_depth` to `1`.
   - Load the local shared repository-inspection plugin, then install its matching global file.
-  - Centralize baseline shell policy, firmware/build safety denials, GitHub CLI access, and exact non-mutating Git inspection rules in the plugin: primary mutation-shaped API calls require approval; subagent mutation-shaped API calls are denied.
+  - Centralize baseline shell policy, recognised firmware/build safety denials, GitHub CLI access, and exact non-mutating Git inspection rules in the plugin: unlisted primary shell commands and mutation-shaped API calls require approval; subagent commands beyond the allow-list are denied.
   - Add an explicit task allow-list to the `embedded-engineer` agent definition with a catch-all deny rule first.
   - Keep all non-pilot agents unavailable to automatic delegation.
   - Preserve existing configuration and validate against the OpenCode schema before saving.
@@ -49,12 +49,13 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
   - Ask the quality reviewer to review a bounded change involving timing, state, or concurrency.
   - Ask the build analyzer to trace an unfamiliar Makefile entry point and identify safe non-mutating commands.
   - Use one primary-agent session to reconcile the three reports and record whether their conclusions are actionable.
+  - Review a change to versioned persistent data and verify that the quality reviewer enumerates all writers, proves version-marker coupling, and rejects unproven event-ordering dependencies. If an architecture report is needed, verify that it covers only distinct cross-module ownership, reader, migration, recovery, or state-flow questions.
 
 - [ ] Evaluate the pilot before expanding the suite.
-  - Measure whether the hand-offs preserve primary-session context, avoid duplicated investigation, and identify useful evidence.
-  - Compare GPT-5.6 Terra and GPT-5.6 Luna for their assigned roles. Use Grok 4.6 only as an independent counter-review for high-consequence findings or difficult diagnoses, and GPT-5.6 Sol only as a final escalation when a high-consequence multi-module decision remains uncertain.
-  - Refine prompts, `steps`, and the three-agent fan-out limit based on observed behaviour.
-  - Do not grant command execution because a prompt requests it; use explicit permission changes justified by pilot evidence.
+  - Measure whether the hand-offs preserve primary-session context, avoid duplicated investigation, and provide actionable evidence.
+  - Assess whether the selected models, reasoning variants, step limits, and three-agent fan-out yield sufficient results without unnecessary cost or incomplete hand-offs.
+  - Confirm that any requested permission change is supported by pilot evidence and preserves the read-only subagent and hazardous-command boundaries.
+  - Record the evaluation and any resulting configuration changes before adding roles or embedded-specific skills.
 
 - [ ] Add roles only when a recurring workflow justifies them.
   - Add `embedded-c-implementer` for tightly bounded edits and test changes after the read-only pilot succeeds.
@@ -75,7 +76,10 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 - The primary agent's task permission has a deny-by-default allow-list.
 - Read-only pilot agents can inspect the workspace, use allow-listed read-only GitHub CLI and exact Git inspection commands, but cannot edit files, execute local shell commands, or create nested subagents.
 - Pilot reports are concise, evidence-based, and useful to the primary engineer without requiring repeated repository exploration.
-- No role can flash firmware, program devices, access device I/O, or run destructive build targets.
+- Quality-review hand-offs identify residual risks separately from findings and evidence gaps.
+- The primary resumes an exhausted subagent or resolves its remaining review gap before finalising.
+- Versioned persistent-data reviews trace every writer and identify unproven event ordering that can persist incompatible data.
+- Roles prohibit flashing firmware, programming devices, device I/O, and destructive build targets. Recognised flashing, programming, clean, package, and release command patterns are hard-denied; other primary shell commands require human approval.
 
 ## Out Of Scope
 

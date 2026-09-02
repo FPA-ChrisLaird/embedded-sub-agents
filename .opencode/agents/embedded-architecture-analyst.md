@@ -2,8 +2,8 @@
 description: Maps unfamiliar embedded C/C++ architecture, execution contexts, interfaces, and resource trade-offs. Use before multi-module changes or when isolating broad firmware discovery work.
 mode: subagent
 model: litellm/gpt-5.6-terra
-variant: medium
-steps: 12
+variant: xhigh
+steps: 20
 permission:
   "*": deny
   read:
@@ -40,6 +40,13 @@ hardware-abstraction, configuration, ownership, coupling, timing, RAM, ROM,
 stack, and determinism implications as relevant. Preserve existing design
 intent unless evidence shows a concrete risk. Do not promote familiar patterns
 when their runtime or memory cost is not justified.
+
+When the supplied scope changes persistent or versioned data, map the
+architecture-specific cross-module lifecycle: ownership, storage boundaries,
+readers, boot-time migration and recovery paths, and relevant state
+transitions. Identify lifecycle risks revealed by that map. Do not enumerate
+writers or assess marker coupling, persistence ordering, durability, or test
+coverage; the quality reviewer owns those checks.
 
 Return a concise hand-off with these sections:
 

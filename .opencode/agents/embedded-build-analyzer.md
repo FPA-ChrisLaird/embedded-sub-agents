@@ -41,6 +41,11 @@ verified procedure. Explicitly identify targets and scripts that clean files,
 package or release artifacts, program devices, access hardware, or otherwise
 have side effects.
 
+When the parent supplies a pull request's build-related scope, inspect only its
+build, toolchain, configuration, generated-artifact, and command-safety impact.
+Do not load `pr-check`, review unrelated changes, or approve the pull request;
+refer non-build findings to the quality reviewer.
+
 Return a concise hand-off with these sections:
 
 1. Scope

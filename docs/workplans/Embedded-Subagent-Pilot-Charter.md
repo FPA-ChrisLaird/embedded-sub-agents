@@ -22,14 +22,14 @@ Embedded firmware investigations commonly require broad repository exploration, 
 - Limit automatic delegation to the three analysis subagents; any future implementation delegation requires approval.
 - Constrain each request to at most three non-overlapping subagent investigations.
 - Require every subagent hand-off to state scope, evidence, assumptions, risks, and a recommended next action.
-- Allow the primary and analysis subagents to run only allow-listed, read-only GitHub CLI commands and exact non-mutating Git inspection commands for repository context, issues, pull-request status and diffs, GitHub Actions status and logs, and local repository state.
+- Allow the primary and analysis subagents to run allow-listed, read-only GitHub CLI commands and exact non-mutating Git inspection commands for repository context, issues, pull-request status and diffs, GitHub Actions status and logs, and local repository state. Other primary shell commands require human approval; analysis-subagent shell commands remain denied.
 - Pilot the roles against representative embedded-C architecture, quality-review, and Makefile investigation tasks.
 
 ### Out Of Scope
 
 - Firmware, build-system, or hardware changes.
 - Subagent file edits or local shell command execution. Read-only GitHub CLI retrieval and exact non-mutating Git inspection are in scope.
-- Firmware flashing, programming, device I/O, destructive build targets, automated commits, pushes, pull-request comments, or history rewriting.
+- Firmware flashing, programming, device I/O, destructive build targets, automated commits, pushes, pull-request comments, or history rewriting. Recognised flashing, programming, clean, package, and release command patterns are hard-denied; any other primary shell command requires human approval.
 - Enabling Jira, Confluence, Xray, or other external retrieval integrations for subagents during the initial pilot. Read-only GitHub CLI retrieval is in scope.
 - Adding `embedded-c-implementer`, `embedded-test-designer`, `embedded-debugger`, `embedded-hardware-reviewer`, or embedded-specific skills before the pilot demonstrates a recurring need.
 - Replacing deterministic C/C++ formatters with an LLM.
@@ -43,10 +43,11 @@ Embedded firmware investigations commonly require broad repository exploration, 
 
 ## Decisions
 
-- The primary agent uses `steps: 30`; the quality reviewer uses `steps: 20`; the architecture and build analysts use `steps: 12`.
+- The interactive primary agent has no step limit. The architecture analyst and quality reviewer use `steps: 20`; the build analyzer uses `steps: 12`.
 - The primary task permission denies by default, then allows only the three analysis roles. Rule order matters because the last matching rule wins.
 - The primary agent's prompt, rather than configuration, limits fan-out because OpenCode does not currently provide a fan-out limit.
 - `task` permissions restrict automatic model delegation only. Direct user `@` invocation remains possible, so every subagent must enforce its own safety permissions.
+- The primary uses approval-gated shell access for a fair end-to-end comparison with Plan and Build. The shared plugin automatically allows only its read-only GitHub and Git inspection commands, hard-denies recognised hazardous command patterns, and requires approval for all other primary shell commands.
 
 ## Acceptance Criteria
 
@@ -56,7 +57,10 @@ Embedded firmware investigations commonly require broad repository exploration, 
 - The three analysis subagents are read-only and cannot edit files, execute local shell commands, or create child subagents. They may use only allow-listed, read-only GitHub CLI and exact Git inspection commands.
 - Each analysis agent has the agreed responsibility, model recommendation, iteration limit, and hand-off contract.
 - Pilot outputs are concise, evidence-based, and let the primary engineer decide next steps without repeating broad exploration.
-- No configured role can flash firmware, program hardware, access device I/O, or run destructive build targets.
+- Quality-review hand-offs identify residual risks separately from findings and evidence gaps.
+- An exhausted subagent investigation is resumed or its remaining gap is resolved by the primary before the parent task is finalised.
+- For changes to persistent or externally encoded representations, the quality reviewer traces every writer and reports unproven ordering dependencies that can persist incompatible data.
+- Roles prohibit flashing firmware, programming hardware, device I/O, and destructive build targets. Recognised flashing, programming, clean, package, and release command patterns are hard-denied; other primary shell commands require human approval.
 
 ## Verification Plan
 
@@ -64,6 +68,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 - Restart OpenCode and run `opencode agent list` to confirm the expected agent names, modes, and permissions.
 - Delegate one bounded architecture investigation, one quality review, and one Makefile investigation from `embedded-engineer`.
 - Confirm each subagent returns the required hand-off sections, can use the allow-listed read-only GitHub CLI and exact Git inspection commands, and cannot call other prohibited tools.
+- For a persistent-data change, confirm the quality reviewer owns writer, marker, persistence-ordering, and test-coverage review. Request architecture analysis only for a distinct cross-module ownership, reader, migration, recovery, or state-flow question.
 - Review the primary session to confirm the specialist outputs preserve context isolation and do not duplicate each other.
 
 ## Rollback
