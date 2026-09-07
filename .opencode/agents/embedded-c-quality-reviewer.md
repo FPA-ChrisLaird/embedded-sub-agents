@@ -3,7 +3,7 @@ description: Performs evidence-based embedded C/C++ quality reviews for correctn
 mode: subagent
 model: litellm/gpt-5.6-terra
 variant: xhigh
-steps: 20
+steps: 60
 permission:
   "*": deny
   read:
