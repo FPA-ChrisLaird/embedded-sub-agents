@@ -15,7 +15,17 @@ This repository is the version-controlled source of truth for the initial pilot.
 - `docs/workplans/Embedded-Subagent-Pilot-Charter.md` defines the pilot's purpose, boundaries, and acceptance criteria.
 - `PLAN.md` tracks the pilot's remaining verification and evaluation tasks.
 
-OpenCode automatically loads this configuration when started in this repository. It deliberately does not set `default_agent`, so existing user preferences remain unchanged; select `embedded-engineer` explicitly when using the pilot. To install the same suite globally, copy the agent files and plugin to `~/.config/opencode/`, then merge the `subagent_depth` and `plugin` settings into `~/.config/opencode/opencode.json`; do not copy credentials or provider settings from another configuration. A global `disable: true` override can intentionally keep the suite unavailable during an A/B comparison with built-in Plan and Build. Quit and restart OpenCode after any configuration change.
+OpenCode automatically loads this configuration when started in this repository. It deliberately does not set `default_agent`, so existing user preferences remain unchanged; select `embedded-engineer` explicitly when using the pilot. To install the same suite globally, run the cross-platform Python 3 installer from the repository root:
+
+```powershell
+py -3 .\scripts\install_opencode_agents.py
+```
+
+```sh
+python3 ./scripts/install_opencode_agents.py
+```
+
+The installer copies only the four agent files and shared plugin to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). It does not remove files or rewrite `opencode.json`, so it preserves credentials, providers, models, MCP servers, and unrelated configuration. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview the changes or `--config-dir PATH` to install to a non-standard or test location. A global `disable: true` override can intentionally keep the suite unavailable during an A/B comparison with built-in Plan and Build. Quit and restart OpenCode after any configuration change.
 
 The current pilot implements only these four roles. The other roles in the catalogue are future candidates and are not yet available for automatic delegation.
 
