@@ -43,7 +43,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 
 ## Decisions
 
-- The interactive primary agent has no step limit. The architecture analyst and quality reviewer use `steps: 20`; the build analyzer uses `steps: 12`.
+- The interactive primary agent has no step limit. The architecture analyst uses `steps: 20`, the quality reviewer uses `steps: 60`, and the build analyzer uses `steps: 12`.
 - The primary task permission denies by default, then allows only the three analysis roles. Rule order matters because the last matching rule wins.
 - The primary agent's prompt, rather than configuration, limits fan-out because OpenCode does not currently provide a fan-out limit.
 - `task` permissions restrict automatic model delegation only. Direct user `@` invocation remains possible, so every subagent must enforce its own safety permissions.

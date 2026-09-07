@@ -6,7 +6,6 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 INSTALLER_PATH = REPOSITORY_ROOT / "scripts" / "install_opencode_agents.py"
 SPEC = importlib.util.spec_from_file_location("install_opencode_agents", INSTALLER_PATH)
@@ -38,7 +37,9 @@ class InstallOpenCodeAgentsTests(unittest.TestCase):
 
             self.assertTrue(all(result.startswith("unchanged ") for result in results))
 
-    def test_replaces_outdated_managed_file_without_touching_unrelated_file(self) -> None:
+    def test_replaces_outdated_managed_file_without_touching_unrelated_file(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             config_dir = Path(temporary_directory) / "opencode"
             outdated_agent = config_dir / "agents" / "embedded-engineer.md"
@@ -51,9 +52,9 @@ class InstallOpenCodeAgentsTests(unittest.TestCase):
 
             self.assertIn(f"update {outdated_agent}", results)
             self.assertEqual(
-                (REPOSITORY_ROOT / ".opencode" / "agents" / "embedded-engineer.md").read_text(
-                    encoding="utf-8"
-                ),
+                (
+                    REPOSITORY_ROOT / ".opencode" / "agents" / "embedded-engineer.md"
+                ).read_text(encoding="utf-8"),
                 outdated_agent.read_text(encoding="utf-8"),
             )
             self.assertEqual("custom", unrelated_agent.read_text(encoding="utf-8"))
@@ -79,8 +80,12 @@ class InstallOpenCodeAgentsTests(unittest.TestCase):
             self.assertFalse(config_dir.exists())
 
     def test_xdg_config_home_is_used_when_set(self) -> None:
-        with mock.patch.dict("os.environ", {"XDG_CONFIG_HOME": "/tmp/config"}, clear=True):
-            self.assertEqual(Path("/tmp/config/opencode"), INSTALLER.default_config_dir())
+        with mock.patch.dict(
+            "os.environ", {"XDG_CONFIG_HOME": "/tmp/config"}, clear=True
+        ):
+            self.assertEqual(
+                Path("/tmp/config/opencode"), INSTALLER.default_config_dir()
+            )
 
 
 if __name__ == "__main__":
