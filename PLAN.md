@@ -17,7 +17,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 
 - [x] Create and version-control `embedded-engineer` in `.opencode/agents/`, then install it globally at `C:\Users\lairdc\.config\opencode\agents\`.
   - Configure it as an unlimited primary agent so it can reconcile and verify specialist findings.
-  - Allow only the defined analysis agents through `permission.task`; require approval for any future implementer delegation.
+  - Allow only the three defined analysis agents through `permission.task`.
   - Limit each user request to three independent subagents and require focused inputs and concise hand-offs.
   - Preserve final responsibility for requirements, decisions, integration, and verification.
 
@@ -27,7 +27,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
   - `embedded-build-analyzer.md`: trace Makefiles, scripts, toolchains, targets, artefacts, and hazardous commands.
   - Set `mode: subagent`, `permission.task: deny`, and `edit: deny` on each agent.
   - Allow workspace read, glob, grep, and list operations. The shared repository-inspection plugin appends read-only `gh` and exact non-mutating Git inspection command allow-lists; it denies all other shell commands.
-  - Set `steps: 20` for the architecture analyst and quality reviewer, and `steps: 12` for the build analyzer.
+  - Set `steps: 20` for the architecture analyst, `steps: 60` for the quality reviewer, and `steps: 12` for the build analyzer.
   - Require every response to state scope, evidence, assumptions, risks, and recommended next action. Quality reviews must separately state residual risks.
 
 - [x] Add and version-control the delegation configuration in `.opencode/opencode.json`, then merge it into `C:\Users\lairdc\.config\opencode\opencode.json`.

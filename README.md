@@ -27,6 +27,37 @@ python3 ./scripts/install_opencode_agents.py
 
 The installer copies only the four agent files and shared plugin to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). It does not remove files or rewrite `opencode.json`, so it preserves credentials, providers, models, MCP servers, and unrelated configuration. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview the changes or `--config-dir PATH` to install to a non-standard or test location. A global `disable: true` override can intentionally keep the suite unavailable during an A/B comparison with built-in Plan and Build. Quit and restart OpenCode after any configuration change.
 
+## Development
+
+The repository uses Invoke to provide repeatable Python checks. Create and activate a virtual environment, install Invoke, then let `inv setup` install the pinned development tools and the pre-commit hook:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install invoke
+inv setup
+```
+
+```sh
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install invoke
+inv setup
+```
+
+Use these commands from the repository root:
+
+```text
+inv format          Apply Black to tasks.py, scripts/, and tests/.
+inv lint            Run Flake8 on the maintained Python sources.
+inv test            Run the pytest suite.
+inv check           Run Black --check, Flake8, and pytest without modifying files.
+inv precommit       Run every pre-commit hook; formatting hooks may modify files.
+inv install-agents  Run the default global OpenCode agent installer.
+```
+
+`inv setup` prepares developer tooling only; it does not install or overwrite the global OpenCode suite. Use `inv install-agents` for the default installation, or run `scripts/install_opencode_agents.py` directly when using `--dry-run` or `--config-dir`.
+
 The current pilot implements only these four roles. The other roles in the catalogue are future candidates and are not yet available for automatic delegation.
 
 ## Why Subagents
@@ -68,8 +99,8 @@ The primary agent may delegate focused, independent investigations. It should no
 |---------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | Nesting depth             | Set top-level `subagent_depth` to `1`.                                                                                                                                                                                              | The primary agent may launch a subagent; a subagent cannot launch another subagent.                                             |
 | Subagent task permission  | Set `task: deny` in every subagent's permissions.                                                                                                                                                                                   | Provides a per-agent defence in depth against recursive delegation.                                                             |
-| Primary task allow-list   | Deny `task: "*"` first, then allow named analysis agents; set `embedded-c-implementer` to `ask`.                                                                                                                                    | Limits automatic delegation to the defined suite and requires approval before assigning implementation.                         |
-| Per-agent iteration limit | Leave the interactive primary agent unlimited. Use `steps: 20` for the architecture analyst and quality reviewer, and `steps: 12` for the build analyzer.                                                                           | Bounds autonomous investigation cost. On reaching the limit, OpenCode requires the subagent to return a summary.                |
+| Primary task allow-list   | Deny `task: "*"` first, then allow only the three named analysis agents.                                                                                                                                                           | Limits automatic delegation to the defined pilot suite.                                                                          |
+| Per-agent iteration limit | Leave the interactive primary agent unlimited. Use `steps: 20` for the architecture analyst, `steps: 60` for the quality reviewer, and `steps: 12` for the build analyzer.                                                             | Bounds autonomous investigation cost. On reaching the limit, OpenCode requires the subagent to return a summary.                |
 | Parallel fan-out          | In the `embedded-engineer` prompt: launch at most three independent subagents for one user request. Do not delegate overlapping work.                                                                                               | Contains cost and prevents duplicated investigations. OpenCode does not currently expose a fan-out limit.                       |
 | Delegation input          | Give each subagent one question, relevant paths or artefacts, constraints, and its expected output. Do not delegate an undifferentiated repository-wide task.                                                                       | Preserves context isolation and makes the result actionable.                                                                    |
 | Persistent data           | Always assign writer, marker, persistence-ordering, and test-coverage review to the quality reviewer. Use the architecture analyst only for a separate cross-module ownership, reader, migration, recovery, or state-flow question. | Avoids duplicated lifecycle investigation while retaining the mandatory persistence correctness review.                         |
@@ -91,8 +122,7 @@ This configuration establishes the recommended delegation boundary:
           "*": "deny",
           "embedded-architecture-analyst": "allow",
           "embedded-c-quality-reviewer": "allow",
-          "embedded-build-analyzer": "allow",
-          "embedded-c-implementer": "ask"
+          "embedded-build-analyzer": "allow"
         }
       }
     }

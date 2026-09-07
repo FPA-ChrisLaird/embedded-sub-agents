@@ -10,9 +10,11 @@ import sys
 import tempfile
 from pathlib import Path
 
-
 MANAGED_FILES = (
-    (Path(".opencode") / "agents" / "embedded-engineer.md", Path("agents") / "embedded-engineer.md"),
+    (
+        Path(".opencode") / "agents" / "embedded-engineer.md",
+        Path("agents") / "embedded-engineer.md",
+    ),
     (
         Path(".opencode") / "agents" / "embedded-architecture-analyst.md",
         Path("agents") / "embedded-architecture-analyst.md",
@@ -59,14 +61,18 @@ def managed_sources(repository_root: Path) -> list[tuple[Path, Path]]:
 
     if missing:
         missing_paths = "\n".join(f"  {path}" for path in missing)
-        raise FileNotFoundError(f"Missing required OpenCode suite source files:\n{missing_paths}")
+        raise FileNotFoundError(
+            f"Missing required OpenCode suite source files:\n{missing_paths}"
+        )
 
     return sources
 
 
 def files_match(source_path: Path, target_path: Path) -> bool:
     """Return whether a target already has identical content to its source."""
-    return target_path.is_file() and source_path.read_bytes() == target_path.read_bytes()
+    return (
+        target_path.is_file() and source_path.read_bytes() == target_path.read_bytes()
+    )
 
 
 def copy_atomically(source_path: Path, target_path: Path) -> None:
@@ -75,7 +81,10 @@ def copy_atomically(source_path: Path, target_path: Path) -> None:
     temporary_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
-            mode="wb", dir=target_path.parent, prefix=f".{target_path.name}.", delete=False
+            mode="wb",
+            dir=target_path.parent,
+            prefix=f".{target_path.name}.",
+            delete=False,
         ) as temporary_file:
             temporary_path = Path(temporary_file.name)
             with source_path.open("rb") as source_file:
@@ -89,7 +98,9 @@ def copy_atomically(source_path: Path, target_path: Path) -> None:
         raise
 
 
-def install(repository_root: Path, config_dir: Path, dry_run: bool = False) -> list[str]:
+def install(
+    repository_root: Path, config_dir: Path, dry_run: bool = False
+) -> list[str]:
     """Install managed files and return their status messages."""
     results: list[str] = []
     for source_path, target_relative_path in managed_sources(repository_root):
@@ -117,7 +128,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="OpenCode configuration directory (default: %(default)s)",
     )
     parser.add_argument(
-        "--dry-run", action="store_true", help="Show planned changes without writing files."
+        "--dry-run",
+        action="store_true",
+        help="Show planned changes without writing files.",
     )
     return parser.parse_args(argv)
 
