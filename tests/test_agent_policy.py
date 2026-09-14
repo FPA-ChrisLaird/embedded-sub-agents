@@ -211,6 +211,7 @@ class AgentPolicyTests(unittest.TestCase):
             )
         )
 
+        self.assertEqual("embedded-engineer", config["default_agent"])
         self.assertEqual(1, config["subagent_depth"])
 
 

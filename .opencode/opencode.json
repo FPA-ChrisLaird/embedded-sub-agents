@@ -1,5 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "default_agent": "embedded-engineer",
   "subagent_depth": 1,
   "plugin": [
     "./plugins/embedded-repository-inspection.ts"
