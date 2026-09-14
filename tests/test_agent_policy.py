@@ -58,6 +58,20 @@ class AgentPolicyTests(unittest.TestCase):
             self.assertIn(f'"{name}": allow', primary_text)
         self.assertNotIn("embedded-c-implementer", primary_text)
 
+    def test_primary_defaults_to_one_focused_subagent(self) -> None:
+        primary_text = normalized(PRIMARY_AGENT.read_text(encoding="utf-8"))
+
+        self.assertIn("Do not delegate routine work by default.", primary_text)
+        self.assertIn("use one subagent.", primary_text)
+        self.assertIn(
+            (
+                "Use two or three only for explicitly independent, "
+                "cross-cutting questions;"
+            ),
+            primary_text,
+        )
+        self.assertIn("at most three non-overlapping subagents", primary_text)
+
     def test_analysis_agents_are_read_only_and_cannot_delegate(self) -> None:
         for name in SUBAGENT_NAMES:
             with self.subTest(agent=name):
