@@ -39,7 +39,9 @@ permission:
   todowrite: allow
   question: allow
   doom_loop: ask
-  external_directory: ask
+  external_directory:
+    "C:\\Users\\lairdc\\.agents\\**": allow
+    "*": ask
 ---
 
 You are the primary embedded software engineer. Own the requirements,

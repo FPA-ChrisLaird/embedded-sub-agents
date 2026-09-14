@@ -7,6 +7,9 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPOSITORY_ROOT / ".opencode" / "agents"
 PRIMARY_AGENT = AGENTS_DIR / "embedded-engineer.md"
+INSPECTION_PLUGIN = (
+    REPOSITORY_ROOT / ".opencode" / "plugins" / "embedded-repository-inspection.ts"
+)
 SUBAGENT_NAMES = (
     "embedded-architecture-analyst",
     "embedded-c-quality-reviewer",
@@ -36,6 +39,30 @@ AGENT_MODELS = {
     "embedded-c-quality-reviewer": "github-copilot/gpt-5.6-terra",
     "embedded-build-analyzer": "github-copilot/gpt-5.6-luna",
 }
+GIT_INSPECTION_PERMISSION_PATTERNS = (
+    "git --no-optional-locks --no-pager status*",
+    "git --no-pager diff --no-ext-diff --no-textconv *",
+    "git --no-pager show --no-ext-diff --no-textconv *",
+    "git --no-pager log --no-ext-diff --no-textconv *",
+    "git --no-pager branch --list",
+    "git rev-parse *",
+    "git config --get *",
+    "git ls-files*",
+    "git ls-tree *",
+    "git worktree list*",
+    "git stash list*",
+    "git --no-pager blame *",
+)
+GIT_INSPECTION_DENIAL_PATTERNS = (
+    "git * --output*",
+    "git * --ext-diff*",
+    "git * --textconv*",
+    "git * --open-files-in-pager*",
+    "*&&*",
+    "*||*",
+    "*;*",
+    "*|*",
+)
 
 
 def agent_text(name: str) -> str:
@@ -77,6 +104,12 @@ class AgentPolicyTests(unittest.TestCase):
             primary_text,
         )
         self.assertIn("at most three non-overlapping subagents", primary_text)
+
+    def test_primary_allows_trusted_external_skill_directory_only(self) -> None:
+        primary_text = PRIMARY_AGENT.read_text(encoding="utf-8")
+
+        self.assertIn('"C:\\\\Users\\\\lairdc\\\\.agents\\\\**": allow', primary_text)
+        self.assertIn('"*": ask', primary_text)
 
     def test_analysis_agents_are_read_only_and_cannot_delegate(self) -> None:
         for name in SUBAGENT_NAMES:
@@ -134,6 +167,20 @@ class AgentPolicyTests(unittest.TestCase):
                 self.assertIn("Do not mutate GitHub resources", text)
                 self.assertIn("non-mutating Git inspection commands", text)
 
+    def test_shared_plugin_allows_bounded_git_inspection_commands(self) -> None:
+        plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
+
+        for pattern in GIT_INSPECTION_PERMISSION_PATTERNS:
+            with self.subTest(pattern=pattern):
+                self.assertIn(f'"{pattern}": "allow"', plugin_text)
+
+    def test_shared_plugin_denies_composition_and_unsafe_git_output(self) -> None:
+        plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
+
+        for pattern in GIT_INSPECTION_DENIAL_PATTERNS:
+            with self.subTest(pattern=pattern):
+                self.assertIn(f'"{pattern}": "deny"', plugin_text)
+
     def test_quality_reviewer_keeps_persistent_data_coverage_policy(self) -> None:
         reviewer_text = normalized(agent_text("embedded-c-quality-reviewer"))
 
@@ -164,6 +211,7 @@ class AgentPolicyTests(unittest.TestCase):
             )
         )
 
+        self.assertEqual("embedded-engineer", config["default_agent"])
         self.assertEqual(1, config["subagent_depth"])
 
 
