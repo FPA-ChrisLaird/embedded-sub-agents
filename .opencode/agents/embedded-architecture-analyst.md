@@ -1,7 +1,7 @@
 ---
 description: Maps unfamiliar embedded C/C++ architecture, execution contexts, interfaces, and resource trade-offs. Use before multi-module changes or when isolating broad firmware discovery work.
 mode: subagent
-model: litellm/gpt-5.6-terra
+model: github-copilot/gpt-5.6-terra
 variant: xhigh
 steps: 20
 permission:

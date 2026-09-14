@@ -30,6 +30,12 @@ MUTATING_CODEBASE_MEMORY_TOOLS = (
     "codebase-memory-mcp_delete_project",
     "codebase-memory-mcp_manage_adr",
 )
+AGENT_MODELS = {
+    "embedded-engineer": "github-copilot/gpt-5.6-terra",
+    "embedded-architecture-analyst": "github-copilot/gpt-5.6-terra",
+    "embedded-c-quality-reviewer": "github-copilot/gpt-5.6-terra",
+    "embedded-build-analyzer": "github-copilot/gpt-5.6-luna",
+}
 
 
 def agent_text(name: str) -> str:
@@ -58,6 +64,20 @@ class AgentPolicyTests(unittest.TestCase):
             self.assertIn(f'"{name}": allow', primary_text)
         self.assertNotIn("embedded-c-implementer", primary_text)
 
+    def test_primary_defaults_to_one_focused_subagent(self) -> None:
+        primary_text = normalized(PRIMARY_AGENT.read_text(encoding="utf-8"))
+
+        self.assertIn("Do not delegate routine work by default.", primary_text)
+        self.assertIn("use one subagent.", primary_text)
+        self.assertIn(
+            (
+                "Use two or three only for explicitly independent, "
+                "cross-cutting questions;"
+            ),
+            primary_text,
+        )
+        self.assertIn("at most three non-overlapping subagents", primary_text)
+
     def test_analysis_agents_are_read_only_and_cannot_delegate(self) -> None:
         for name in SUBAGENT_NAMES:
             with self.subTest(agent=name):
@@ -76,6 +96,13 @@ class AgentPolicyTests(unittest.TestCase):
         for name, steps in expected_step_limits.items():
             with self.subTest(agent=name):
                 self.assertIn(f"steps: {steps}", agent_text(name))
+
+    def test_agents_use_github_copilot_models(self) -> None:
+        for name, model in AGENT_MODELS.items():
+            with self.subTest(agent=name):
+                text = agent_text(name)
+                self.assertIn(f"model: {model}", text)
+                self.assertNotIn("model: litellm/", text)
 
     def test_all_agents_allow_only_read_only_codebase_memory_tools(self) -> None:
         for name in ("embedded-engineer", *SUBAGENT_NAMES):

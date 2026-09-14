@@ -18,7 +18,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 - [x] Create and version-control `embedded-engineer` in `.opencode/agents/`, then install it globally at `C:\Users\lairdc\.config\opencode\agents\`.
   - Configure it as an unlimited primary agent so it can reconcile and verify specialist findings.
   - Allow only the three defined analysis agents through `permission.task`.
-  - Limit each user request to three independent subagents and require focused inputs and concise hand-offs.
+  - Do not delegate routine work by default. Use one focused subagent when it materially improves the result; use two or three only for explicitly independent, cross-cutting questions, with focused inputs and concise hand-offs.
   - Preserve final responsibility for requirements, decisions, integration, and verification.
 
 - [x] Create and version-control the read-only analysis agents in `.opencode/agents/`, then install them globally at `C:\Users\lairdc\.config\opencode\agents\`.
@@ -53,7 +53,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 
 - [ ] Evaluate the pilot before expanding the suite.
   - Measure whether the hand-offs preserve primary-session context, avoid duplicated investigation, and provide actionable evidence.
-  - Assess whether the selected models, reasoning variants, step limits, and three-agent fan-out yield sufficient results without unnecessary cost or incomplete hand-offs.
+  - Assess whether the selected models, reasoning variants, step limits, and one-subagent default yield sufficient results without unnecessary cost or incomplete hand-offs.
   - Confirm that any requested permission change is supported by pilot evidence and preserves the read-only subagent and hazardous-command boundaries.
   - Record the evaluation and any resulting configuration changes before adding roles or embedded-specific skills.
 
