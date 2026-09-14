@@ -1,7 +1,7 @@
 ---
 description: Coordinates embedded C/C++ investigations and safely integrates specialist findings. Use for multi-module firmware changes, safety-sensitive work, or when focused context isolation will improve the result.
 mode: primary
-model: litellm/gpt-5.6-terra
+model: github-copilot/gpt-5.6-terra
 variant: xhigh
 permission:
   "*": ask
