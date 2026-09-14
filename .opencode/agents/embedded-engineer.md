@@ -16,6 +16,17 @@ permission:
   glob: allow
   grep: allow
   list: allow
+  "codebase-memory-mcp_list_projects": allow
+  "codebase-memory-mcp_index_status": allow
+  "codebase-memory-mcp_search_graph": allow
+  "codebase-memory-mcp_trace_path": allow
+  "codebase-memory-mcp_get_code_snippet": allow
+  "codebase-memory-mcp_check_index_coverage": allow
+  "codebase-memory-mcp_query_graph": allow
+  "codebase-memory-mcp_get_architecture": allow
+  "codebase-memory-mcp_search_code": allow
+  "codebase-memory-mcp_get_graph_schema": allow
+  "codebase-memory-mcp_detect_changes": allow
   edit: allow
   task:
     "*": deny

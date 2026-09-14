@@ -12,6 +12,24 @@ SUBAGENT_NAMES = (
     "embedded-c-quality-reviewer",
     "embedded-build-analyzer",
 )
+READ_ONLY_CODEBASE_MEMORY_TOOLS = (
+    "codebase-memory-mcp_list_projects",
+    "codebase-memory-mcp_index_status",
+    "codebase-memory-mcp_search_graph",
+    "codebase-memory-mcp_trace_path",
+    "codebase-memory-mcp_get_code_snippet",
+    "codebase-memory-mcp_check_index_coverage",
+    "codebase-memory-mcp_query_graph",
+    "codebase-memory-mcp_get_architecture",
+    "codebase-memory-mcp_search_code",
+    "codebase-memory-mcp_get_graph_schema",
+    "codebase-memory-mcp_detect_changes",
+)
+MUTATING_CODEBASE_MEMORY_TOOLS = (
+    "codebase-memory-mcp_index_repository",
+    "codebase-memory-mcp_delete_project",
+    "codebase-memory-mcp_manage_adr",
+)
 
 
 def agent_text(name: str) -> str:
@@ -58,6 +76,16 @@ class AgentPolicyTests(unittest.TestCase):
         for name, steps in expected_step_limits.items():
             with self.subTest(agent=name):
                 self.assertIn(f"steps: {steps}", agent_text(name))
+
+    def test_all_agents_allow_only_read_only_codebase_memory_tools(self) -> None:
+        for name in ("embedded-engineer", *SUBAGENT_NAMES):
+            with self.subTest(agent=name):
+                text = agent_text(name)
+                for tool in READ_ONLY_CODEBASE_MEMORY_TOOLS:
+                    self.assertIn(f'"{tool}": allow', text)
+                for tool in MUTATING_CODEBASE_MEMORY_TOOLS:
+                    self.assertNotIn(f'"{tool}": allow', text)
+                self.assertNotIn('"codebase-memory-mcp_*": allow', text)
 
     def test_pr_scoped_analysis_agents_can_load_pr_check(self) -> None:
         for name in SUBAGENT_NAMES:
