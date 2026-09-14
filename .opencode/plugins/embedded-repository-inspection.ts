@@ -64,18 +64,66 @@ const GITHUB_READ_PERMISSIONS: BashPermissions = {
 }
 
 const GIT_INSPECTION_PERMISSIONS: BashPermissions = {
-  "git --no-optional-locks --no-pager status --short --branch": "allow",
-  "git --no-pager diff --no-ext-diff --check": "allow",
-  "git --no-pager diff --cached --no-ext-diff --check": "allow",
-  "git --no-pager diff --no-ext-diff --stat": "allow",
-  "git --no-pager diff --cached --no-ext-diff --stat": "allow",
-  "git --no-pager diff --no-ext-diff --name-only": "allow",
-  "git --no-pager diff --cached --no-ext-diff --name-only": "allow",
-  "git --no-pager diff --quiet": "allow",
-  "git --no-pager diff --cached --quiet": "allow",
+  "git --no-optional-locks --no-pager status*": "allow",
+  "git --no-pager diff --no-ext-diff --no-textconv": "allow",
+  "git --no-pager diff --no-ext-diff --no-textconv *": "allow",
+  "git --no-pager show --no-ext-diff --no-textconv": "allow",
+  "git --no-pager show --no-ext-diff --no-textconv *": "allow",
   "git --no-pager branch --show-current": "allow",
-  "git rev-parse --show-toplevel": "allow",
-  "git --no-pager log --oneline -10": "allow",
+  "git --no-pager branch": "allow",
+  "git --no-pager branch --list": "allow",
+  "git --no-pager branch --all": "allow",
+  "git --no-pager branch --remotes": "allow",
+  "git --no-pager branch -a": "allow",
+  "git --no-pager branch -r": "allow",
+  "git rev-parse *": "allow",
+  "git --no-pager log --no-ext-diff --no-textconv": "allow",
+  "git --no-pager log --no-ext-diff --no-textconv *": "allow",
+  "git --no-pager reflog": "allow",
+  "git --no-pager reflog show*": "allow",
+  "git merge-base *": "allow",
+  "git describe *": "allow",
+  "git name-rev *": "allow",
+  "git --no-pager tag": "allow",
+  "git --no-pager tag --list*": "allow",
+  "git worktree list*": "allow",
+  "git stash list*": "allow",
+  "git submodule status*": "allow",
+  "git sparse-checkout list": "allow",
+  "git remote": "allow",
+  "git remote -v": "allow",
+  "git remote get-url *": "allow",
+  "git config --get *": "allow",
+  "git config --get-all *": "allow",
+  "git config --get-regexp *": "allow",
+  "git config --list": "allow",
+  "git config --show-origin --list": "allow",
+  "git ls-files*": "allow",
+  "git ls-tree *": "allow",
+  "git cat-file -e *": "allow",
+  "git cat-file -t *": "allow",
+  "git cat-file -s *": "allow",
+  "git show-ref*": "allow",
+  "git for-each-ref*": "allow",
+  "git rev-list *": "allow",
+  "git check-ignore *": "allow",
+  "git check-attr *": "allow",
+  "git --no-pager blame *": "allow",
+  "git --no-pager shortlog*": "allow",
+}
+
+const GIT_INSPECTION_DENIALS: BashPermissions = {
+  "git * --output*": "deny",
+  "git * --ext-diff*": "deny",
+  "git * --textconv*": "deny",
+  "git * --open-files-in-pager*": "deny",
+}
+
+const SHELL_COMPOSITION_DENIALS: BashPermissions = {
+  "*&&*": "deny",
+  "*||*": "deny",
+  "*;*": "deny",
+  "*|*": "deny",
 }
 
 function getApiMutationGuards(action: PermissionAction): BashPermissions {
@@ -148,6 +196,8 @@ const plugin: Plugin = async () => ({
       Object.assign(permissions, getApiMutationGuards(mutationAction))
       Object.assign(permissions, GITHUB_GRAPHQL_QUERY_PERMISSIONS)
       Object.assign(permissions, getGraphqlMutationGuards(mutationAction))
+      Object.assign(permissions, GIT_INSPECTION_DENIALS)
+      Object.assign(permissions, SHELL_COMPOSITION_DENIALS)
 
       if (agentName === "embedded-engineer") {
         Object.assign(permissions, EMBEDDED_ENGINEER_SAFETY_DENIALS)

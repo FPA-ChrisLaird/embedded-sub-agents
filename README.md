@@ -7,7 +7,8 @@ Product-agnostic OpenCode agent and subagent roles for embedded C/C++ software d
 This repository is the version-controlled source of truth for the initial pilot. The executable configuration is in `.opencode/` and contains no secrets:
 
 - `.opencode/opencode.json` sets `subagent_depth` to `1` and loads the local plugin.
-- `.opencode/plugins/embedded-repository-inspection.ts` centrally applies the read-only GitHub CLI and Git inspection policy.
+- `.opencode/plugins/embedded-repository-inspection.ts` centrally applies the
+  read-only GitHub CLI and bounded, non-mutating Git inspection policy.
 - `.opencode/agents/embedded-engineer.md` defines the primary coordinator and
   permits it to create or refresh the trusted local Codebase Memory index
   without a prompt. The analysis subagents remain restricted to read-only
@@ -29,6 +30,32 @@ python3 ./scripts/install_opencode_agents.py
 ```
 
 The installer copies only the four agent files and shared plugin to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). It does not remove files or rewrite `opencode.json`, so it preserves credentials, providers, models, MCP servers, and unrelated configuration. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview the changes or `--config-dir PATH` to install to a non-standard or test location. A global `disable: true` override can intentionally keep the suite unavailable during an A/B comparison with built-in Plan and Build. Quit and restart OpenCode after any configuration change.
+
+### Git inspection without prompts
+
+The shared plugin auto-approves individual, non-mutating Git inspection
+commands, including status, safe diffs, shows and logs, reflog, branch and tag
+listing, revision and reference queries, read-only configuration queries,
+tracked-file and tree listing, blame, worktree listing, stash listing, and
+submodule status. Use the plugin's canonical flags, such as
+`git --no-optional-locks --no-pager status --short --branch` and
+`git --no-pager diff --no-ext-diff --no-textconv <revision-or-path>`, so status
+does not take an optional index lock and diffs cannot invoke external helpers or
+repository-configured text-conversion filters.
+
+Inspection commands must be invoked individually: shell composition (`&&`,
+`||`, `;`, or `|`) remains denied so an approved read command cannot be combined
+with an unreviewed action. Commands that can alter Git state—including staging,
+committing, switching or creating branches, merging, rebasing, resetting,
+cleaning, fetching, pulling, pushing, remote changes, and configuration
+writes—are not auto-approved.
+
+### Trusted external skills
+
+The primary `embedded-engineer` auto-approves access to the trusted local skill
+directory, `C:\Users\lairdc\.agents\**`, so loading installed skills does not
+trigger an external-directory prompt. Other external paths still prompt, and
+the analysis subagents remain denied external-directory access.
 
 ## Development
 
@@ -92,7 +119,7 @@ Use Grok 4.6 only when an independent reasoning path is valuable: a high-consequ
 
 Source formatting should remain deterministic tooling, such as `clang-format` or `uncrustify`, rather than an LLM agent.
 
-All roles prohibit firmware flashing, programming, device I/O, and destructive build targets in their prompts. The shared plugin hard-denies recognised flashing, programming, clean, package, and release command patterns. The primary may run other non-allow-listed shell commands only after human approval; approval is not evidence that a command is safe or suitable. Read-only subagents may generate reports, design options, and code proposals in their responses, but cannot modify the workspace or execute local commands other than the allow-listed, read-only `gh` commands and exact non-mutating Git inspection commands used to inspect repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
+All roles prohibit firmware flashing, programming, device I/O, and destructive build targets in their prompts. The shared plugin hard-denies recognised flashing, programming, clean, package, and release command patterns. The primary may run other non-allow-listed shell commands only after human approval; approval is not evidence that a command is safe or suitable. Read-only subagents may generate reports, design options, and code proposals in their responses, but cannot modify the workspace or execute local commands other than the allow-listed, read-only `gh` commands and bounded, non-mutating Git inspection commands used to inspect repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
 
 ## Delegation Controls
 
@@ -110,7 +137,7 @@ The primary agent may delegate focused, independent investigations. It should no
 | Delegation output         | Require scope, evidence, assumptions, risks, and a recommended next action; use a concise word limit appropriate to the task.                                                                                                       | Keeps child-session findings from overwhelming the primary context.                                                             |
 | Exhausted investigation   | The primary must resume an exhausted subagent by its returned task ID with a focused question, or resolve its remaining gap itself before finalising.                                                                               | Prevents an incomplete hand-off from being treated as a completed review.                                                       |
 | Direct user invocation    | Keep safety permissions on every subagent. `task` rules control model delegation only; users can still invoke an agent directly with `@`, even when the primary's `task` permission denies that agent.                              | Treat task permissions as routing controls, not a security boundary.                                                            |
-| Repository inspection     | Allow listed `gh` read commands, read-only `gh api` queries, and exact non-mutating Git inspection commands; keep all other shell commands at `ask` for the primary and denied for subagents.                                       | Avoids approval prompts for repository, PR, and Actions context plus local state without granting unreviewed command execution. |
+| Repository inspection     | Allow listed `gh` read commands, read-only `gh api` queries, and bounded non-mutating Git inspection commands; keep all other shell commands at `ask` for the primary and denied for subagents.                                     | Avoids approval prompts for repository, PR, and Actions context plus local state without granting unreviewed command execution. |
 
 This configuration establishes the recommended delegation boundary:
 
