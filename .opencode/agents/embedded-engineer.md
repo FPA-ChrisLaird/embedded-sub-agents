@@ -27,6 +27,7 @@ permission:
   "codebase-memory-mcp_search_code": allow
   "codebase-memory-mcp_get_graph_schema": allow
   "codebase-memory-mcp_detect_changes": allow
+  "codebase-memory-mcp_index_repository": allow
   edit: allow
   task:
     "*": deny
