@@ -25,8 +25,8 @@ READ_ONLY_CODEBASE_MEMORY_TOOLS = (
     "codebase-memory-mcp_get_graph_schema",
     "codebase-memory-mcp_detect_changes",
 )
+PRIMARY_LOCAL_INDEX_CODEBASE_MEMORY_TOOLS = ("codebase-memory-mcp_index_repository",)
 MUTATING_CODEBASE_MEMORY_TOOLS = (
-    "codebase-memory-mcp_index_repository",
     "codebase-memory-mcp_delete_project",
     "codebase-memory-mcp_manage_adr",
 )
@@ -104,12 +104,19 @@ class AgentPolicyTests(unittest.TestCase):
                 self.assertIn(f"model: {model}", text)
                 self.assertNotIn("model: litellm/", text)
 
-    def test_all_agents_allow_only_read_only_codebase_memory_tools(self) -> None:
+    def test_codebase_memory_permissions_allow_only_primary_local_indexing(
+        self,
+    ) -> None:
         for name in ("embedded-engineer", *SUBAGENT_NAMES):
             with self.subTest(agent=name):
                 text = agent_text(name)
                 for tool in READ_ONLY_CODEBASE_MEMORY_TOOLS:
                     self.assertIn(f'"{tool}": allow', text)
+                for tool in PRIMARY_LOCAL_INDEX_CODEBASE_MEMORY_TOOLS:
+                    if name == "embedded-engineer":
+                        self.assertIn(f'"{tool}": allow', text)
+                    else:
+                        self.assertNotIn(f'"{tool}": allow', text)
                 for tool in MUTATING_CODEBASE_MEMORY_TOOLS:
                     self.assertNotIn(f'"{tool}": allow', text)
                 self.assertNotIn('"codebase-memory-mcp_*": allow', text)

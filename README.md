@@ -8,7 +8,10 @@ This repository is the version-controlled source of truth for the initial pilot.
 
 - `.opencode/opencode.json` sets `subagent_depth` to `1` and loads the local plugin.
 - `.opencode/plugins/embedded-repository-inspection.ts` centrally applies the read-only GitHub CLI and Git inspection policy.
-- `.opencode/agents/embedded-engineer.md` defines the primary coordinator.
+- `.opencode/agents/embedded-engineer.md` defines the primary coordinator and
+  permits it to create or refresh the trusted local Codebase Memory index
+  without a prompt. The analysis subagents remain restricted to read-only
+  Codebase Memory tools.
 - `.opencode/agents/embedded-architecture-analyst.md` defines the read-only architecture analyst.
 - `.opencode/agents/embedded-c-quality-reviewer.md` defines the read-only quality reviewer.
 - `.opencode/agents/embedded-build-analyzer.md` defines the read-only Make and build-system analyst.
