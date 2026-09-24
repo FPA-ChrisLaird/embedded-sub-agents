@@ -34,10 +34,10 @@ MUTATING_CODEBASE_MEMORY_TOOLS = (
     "codebase-memory-mcp_manage_adr",
 )
 AGENT_MODELS = {
-    "embedded-engineer": "github-copilot/gpt-5.6-terra",
-    "embedded-architecture-analyst": "github-copilot/gpt-5.6-terra",
-    "embedded-c-quality-reviewer": "github-copilot/gpt-5.6-terra",
-    "embedded-build-analyzer": "github-copilot/gpt-5.6-luna",
+    "embedded-engineer": "github-copilot/gpt-6-sol",
+    "embedded-architecture-analyst": "github-copilot/gpt-6-sol",
+    "embedded-c-quality-reviewer": "github-copilot/gpt-6-sol",
+    "embedded-build-analyzer": "github-copilot/gpt-6-luna",
 }
 GIT_INSPECTION_PERMISSION_PATTERNS = (
     "git --no-optional-locks --no-pager status*",
