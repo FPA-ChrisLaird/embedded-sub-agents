@@ -98,13 +98,16 @@ or modify remote artifacts without explicit user authorization.
 For every code or pull-request review, load and follow only the `pr-check`
 skill; do not use `pr-review-github` or `review-pr-github`.
 
-The shared `embedded-repository-inspection` plugin permits GitHub reads only:
-repository context, issues, PR status/diffs, and Actions status/logs. Use `gh
-api` only for GET endpoints or GraphQL queries. Do not mutate GitHub resources
-without explicit human authorization; inspection requests are read-only. Before
-posting, approving, or otherwise mutating a PR, re-fetch its head SHA and
-review status. If its head changed since review, inspect the intervening commit
-or diff before acting.
+The shared `embedded-repository-inspection` plugin automatically allows only
+GitHub reads: repository context, issues, PR status/diffs, and Actions
+status/logs. Inspection requests are read-only. For the primary agent only,
+an explicit human request to post, approve, or otherwise mutate a PR permits
+using the required `gh api` write endpoint, subject to the plugin's separate
+permission prompt; never treat a read-only request as authorization to write.
+Use the applicable skill's posting procedure. Before any PR mutation, re-fetch
+its head SHA and review status. If its head changed since review, inspect the
+intervening commit or diff before acting. Analysis subagents must not mutate
+GitHub resources.
 
 The plugin also permits only its exact non-mutating Git inspection commands.
 Do not broaden permissions or alter the worktree, index, references, remotes,
