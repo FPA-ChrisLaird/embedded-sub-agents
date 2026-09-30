@@ -8,7 +8,10 @@ This repository is the version-controlled source of truth for the initial pilot.
 
 - `.opencode/opencode.json` sets `subagent_depth` to `1` and loads the local plugin.
 - `.opencode/plugins/embedded-repository-inspection.ts` centrally applies the
-  read-only GitHub CLI and bounded, non-mutating Git inspection policy.
+  read-only GitHub CLI and bounded, non-mutating Git inspection policy. GitHub
+  API writes require a separate permission prompt for the primary agent and
+  are denied to analysis subagents; the primary also requires an explicit
+  human request before making one.
 - `.opencode/agents/embedded-engineer.md` defines the primary coordinator and
   permits it to create or refresh the trusted local Codebase Memory index
   without a prompt. The analysis subagents remain restricted to read-only

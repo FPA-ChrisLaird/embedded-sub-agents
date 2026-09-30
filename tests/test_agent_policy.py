@@ -161,11 +161,26 @@ class AgentPolicyTests(unittest.TestCase):
                 self.assertIn('"pr-check": allow', text)
 
     def test_all_agents_preserve_github_and_git_non_mutation_policy(self) -> None:
-        for name in ("embedded-engineer", *SUBAGENT_NAMES):
+        for name in SUBAGENT_NAMES:
             with self.subTest(agent=name):
                 text = normalized(agent_text(name))
                 self.assertIn("Do not mutate GitHub resources", text)
                 self.assertIn("non-mutating Git inspection commands", text)
+
+        primary_text = normalized(agent_text("embedded-engineer"))
+        self.assertIn("an explicit human request to post, approve", primary_text)
+        self.assertIn("plugin's separate permission prompt", primary_text)
+        self.assertIn("never treat a read-only request as authorization", primary_text)
+        self.assertIn("non-mutating Git inspection commands", primary_text)
+
+    def test_shared_plugin_prompts_primary_for_api_writes_and_denies_subagents(
+        self,
+    ) -> None:
+        plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
+
+        self.assertIn('agentName === "embedded-engineer" ? "ask" : "deny"', plugin_text)
+        self.assertIn("getApiMutationGuards(mutationAction)", plugin_text)
+        self.assertIn("getGraphqlMutationGuards(mutationAction)", plugin_text)
 
     def test_shared_plugin_allows_bounded_git_inspection_commands(self) -> None:
         plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
