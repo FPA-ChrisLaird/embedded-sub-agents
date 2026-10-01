@@ -1,5 +1,17 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "github-copilot/gpt-6.1-sol",
+  "provider": {
+    "github-copilot": {
+      "models": {
+        "gpt-6.1-sol": {
+          "options": {
+            "reasoningEffort": "xhigh"
+          }
+        }
+      }
+    }
+  },
   "default_agent": "embedded-engineer",
   "subagent_depth": 1,
   "plugin": [

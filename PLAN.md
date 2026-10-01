@@ -10,7 +10,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 - Make analysis roles read-only. Add `embedded-c-implementer` only after the analysis pilot produces reliable, useful hand-offs.
 - Prohibit hardware programming, device I/O, and destructive build targets for every role. The primary requires approval for non-allow-listed commands; recognised flashing, programming, clean, package, and release patterns remain hard-denied.
 - Do not enable Jira, Confluence, or Xray retrieval for subagents during the initial pilot. Allow only read-only GitHub CLI retrieval plus exact non-mutating Git inspection commands for repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
-- Use GPT-5.6 Terra with `xhigh` for `embedded-engineer`, `embedded-c-quality-reviewer`, and `embedded-architecture-analyst`; use GPT-5.6 Luna with `medium` for `embedded-build-analyzer`.
+- Use GPT-6.1 Sol with `xhigh` for `embedded-engineer`, `embedded-c-quality-reviewer`, and `embedded-architecture-analyst`; retain GPT-6 Luna with `medium` for the narrower build-tracing role. Set the repository default model to `github-copilot/gpt-6.1-sol` with `reasoningEffort: xhigh`.
 - Do not create embedded-specific skills until repeated work demonstrates the organisational conventions they must encode.
 
 ## Tasks

@@ -34,9 +34,9 @@ MUTATING_CODEBASE_MEMORY_TOOLS = (
     "codebase-memory-mcp_manage_adr",
 )
 AGENT_MODELS = {
-    "embedded-engineer": "github-copilot/gpt-6-sol",
-    "embedded-architecture-analyst": "github-copilot/gpt-6-sol",
-    "embedded-c-quality-reviewer": "github-copilot/gpt-6-sol",
+    "embedded-engineer": "github-copilot/gpt-6.1-sol",
+    "embedded-architecture-analyst": "github-copilot/gpt-6.1-sol",
+    "embedded-c-quality-reviewer": "github-copilot/gpt-6.1-sol",
     "embedded-build-analyzer": "github-copilot/gpt-6-luna",
 }
 GIT_INSPECTION_PERMISSION_PATTERNS = (
@@ -153,6 +153,23 @@ class AgentPolicyTests(unittest.TestCase):
                 for tool in MUTATING_CODEBASE_MEMORY_TOOLS:
                     self.assertNotIn(f'"{tool}": allow', text)
                 self.assertNotIn('"codebase-memory-mcp_*": allow', text)
+
+    def test_agents_keep_role_specific_reasoning_variants(self) -> None:
+        for name in AGENT_MODELS:
+            with self.subTest(agent=name):
+                variant = "medium" if name == "embedded-build-analyzer" else "xhigh"
+                self.assertIn(f"variant: {variant}", agent_text(name).split("---")[1])
+
+    def test_project_defaults_to_sol_6_1_with_xhigh_reasoning(self) -> None:
+        config = json.loads(
+            (REPOSITORY_ROOT / ".opencode" / "opencode.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertEqual("github-copilot/gpt-6.1-sol", config["model"])
+        model = config["provider"]["github-copilot"]["models"]["gpt-6.1-sol"]
+        self.assertEqual("xhigh", model["options"]["reasoningEffort"])
 
     def test_pr_scoped_analysis_agents_can_load_pr_check(self) -> None:
         for name in SUBAGENT_NAMES:
