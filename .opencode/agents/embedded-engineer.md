@@ -1,7 +1,7 @@
 ---
 description: Coordinates embedded C/C++ investigations and safely integrates specialist findings. Use for multi-module firmware changes, safety-sensitive work, or when focused context isolation will improve the result.
 mode: primary
-model: github-copilot/gpt-6-sol
+model: github-copilot/gpt-6.1-sol
 variant: xhigh
 permission:
   "*": ask
