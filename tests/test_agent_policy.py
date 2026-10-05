@@ -222,6 +222,25 @@ class AgentPolicyTests(unittest.TestCase):
         )
         self.assertIn("risk requiring confirmation", reviewer_text)
 
+    def test_primary_build_cleanup_requires_approval_and_target_inspection(
+        self,
+    ) -> None:
+        plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
+        primary_text = normalized(agent_text("embedded-engineer"))
+
+        self.assertNotIn('"* clean*": "deny"', plugin_text)
+        self.assertIn('"embedded-engineer": { "*": "ask" }', plugin_text)
+        for name in SUBAGENT_NAMES:
+            self.assertIn(f'"{name}": {{ "*": "deny" }}', plugin_text)
+        for pattern in ("*flash*", "*program*", "* package*", "* release*"):
+            self.assertIn(f'"{pattern}": "deny"', plugin_text)
+        self.assertIn(
+            "Build cleanup such as `make clean` requires explicit human approval",
+            primary_text,
+        )
+        self.assertIn("prior inspection of the target", primary_text)
+        self.assertIn("Other destructive targets remain prohibited", primary_text)
+
     def test_primary_requires_evidence_and_current_pr_head_before_mutation(
         self,
     ) -> None:

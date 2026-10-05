@@ -8,7 +8,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 - Set `subagent_depth` to `1`: the primary agent may delegate, but no subagent may delegate further.
 - Start with four roles: `embedded-engineer`, `embedded-architecture-analyst`, `embedded-c-quality-reviewer`, and `embedded-build-analyzer`.
 - Make analysis roles read-only. Add `embedded-c-implementer` only after the analysis pilot produces reliable, useful hand-offs.
-- Prohibit hardware programming, device I/O, and destructive build targets for every role. The primary requires approval for non-allow-listed commands; recognised flashing, programming, clean, package, and release patterns remain hard-denied.
+- Prohibit hardware programming and device I/O for every role. The primary may run build cleanup such as `make clean` after explicit approval and target inspection confirming that only regenerable build artifacts are removed; other destructive targets remain prohibited. The primary requires approval for non-allow-listed commands; recognised flashing, programming, package, and release patterns remain hard-denied.
 - Do not enable Jira, Confluence, or Xray retrieval for subagents during the initial pilot. Allow only read-only GitHub CLI retrieval plus exact non-mutating Git inspection commands for repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
 - Use GPT-6.1 Sol with `xhigh` for `embedded-engineer`, `embedded-c-quality-reviewer`, and `embedded-architecture-analyst`; retain GPT-6 Luna with `medium` for the narrower build-tracing role. Set the repository default model to `github-copilot/gpt-6.1-sol` with `reasoningEffort: xhigh`.
 - Do not create embedded-specific skills until repeated work demonstrates the organisational conventions they must encode.
@@ -79,7 +79,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 - Quality-review hand-offs identify residual risks separately from findings and evidence gaps.
 - The primary resumes an exhausted subagent or resolves its remaining review gap before finalising.
 - Versioned persistent-data reviews trace every writer and identify unproven event ordering that can persist incompatible data.
-- Roles prohibit flashing firmware, programming devices, device I/O, and destructive build targets. Recognised flashing, programming, clean, package, and release command patterns are hard-denied; other primary shell commands require human approval.
+- Roles prohibit flashing firmware, programming devices, and device I/O. Primary build cleanup requires explicit approval and inspection confirming that only regenerable build artifacts are removed; other destructive targets remain prohibited. Recognised flashing, programming, package, and release command patterns are hard-denied; other primary shell commands require human approval.
 
 ## Out Of Scope
 

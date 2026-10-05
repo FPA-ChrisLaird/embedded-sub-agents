@@ -39,7 +39,6 @@ const EMBEDDED_ENGINEER_SAFETY_DENIALS: BashPermissions = {
   "*dfu-util*": "deny",
   "*avrdude*": "deny",
   "*nrfjprog*": "deny",
-  "* clean*": "deny",
   "* package*": "deny",
   "* release*": "deny",
 }

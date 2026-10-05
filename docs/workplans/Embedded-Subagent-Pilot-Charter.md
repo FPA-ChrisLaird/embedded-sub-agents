@@ -29,7 +29,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 
 - Firmware, build-system, or hardware changes.
 - Subagent file edits or local shell command execution. Read-only GitHub CLI retrieval and exact non-mutating Git inspection are in scope.
-- Firmware flashing, programming, device I/O, destructive build targets, automated commits, pushes, pull-request comments, or history rewriting. Recognised flashing, programming, clean, package, and release command patterns are hard-denied; any other primary shell command requires human approval.
+- Firmware flashing, programming, device I/O, destructive targets beyond approved regenerable build-artifact cleanup, automated commits, pushes, pull-request comments, or history rewriting. Recognised flashing, programming, package, and release command patterns are hard-denied; any other primary shell command requires human approval. Build cleanup such as `make clean` also requires prior target inspection confirming that only regenerable build artifacts are removed.
 - Enabling Jira, Confluence, Xray, or other external retrieval integrations for subagents during the initial pilot. Read-only GitHub CLI retrieval is in scope.
 - Adding `embedded-c-implementer`, `embedded-test-designer`, `embedded-debugger`, `embedded-hardware-reviewer`, or embedded-specific skills before the pilot demonstrates a recurring need.
 - Replacing deterministic C/C++ formatters with an LLM.
@@ -60,7 +60,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 - Quality-review hand-offs identify residual risks separately from findings and evidence gaps.
 - An exhausted subagent investigation is resumed or its remaining gap is resolved by the primary before the parent task is finalised.
 - For changes to persistent or externally encoded representations, the quality reviewer traces every writer and reports unproven ordering dependencies that can persist incompatible data.
-- Roles prohibit flashing firmware, programming hardware, device I/O, and destructive build targets. Recognised flashing, programming, clean, package, and release command patterns are hard-denied; other primary shell commands require human approval.
+- Roles prohibit flashing firmware, programming hardware, and device I/O. Primary build cleanup such as `make clean` requires explicit approval and inspection confirming that only regenerable build artifacts are removed; other destructive targets remain prohibited. Recognised flashing, programming, package, and release command patterns are hard-denied; other primary shell commands require human approval.
 
 ## Verification Plan
 
