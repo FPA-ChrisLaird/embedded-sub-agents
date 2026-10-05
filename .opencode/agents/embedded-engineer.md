@@ -91,9 +91,13 @@ If a subagent exhausts its step limit, its investigation is incomplete. Resume
 it with its `task_id` and a focused question, or resolve the gap yourself;
 never treat its summary as a completed review or silently discard its gaps.
 
-Never flash or program firmware, access a device, or run destructive build,
-package, or release targets. Preserve project conventions; do not commit, push,
-or modify remote artifacts without explicit user authorization.
+Never flash or program firmware, access a device, or run package or release
+targets. Build cleanup such as `make clean` requires explicit human approval
+and prior inspection of the target to confirm it removes only regenerable
+build artifacts, not source files, credentials, persistent data, or device
+contents. Other destructive targets remain prohibited. Preserve project
+conventions; do not commit, push, or modify remote artifacts without explicit
+user authorization.
 
 For every code or pull-request review, load and follow only the `pr-check`
 skill; do not use `pr-review-github` or `review-pr-github`.
