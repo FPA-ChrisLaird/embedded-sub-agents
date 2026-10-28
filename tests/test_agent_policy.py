@@ -293,6 +293,22 @@ class AgentPolicyTests(unittest.TestCase):
         self.assertIn("authorization is revoked or unclear", primary_text)
         self.assertIn("does not waive shell permission prompts", primary_text)
 
+    def test_primary_can_launch_only_the_authorized_installed_app(self) -> None:
+        primary_text = normalized(agent_text("embedded-engineer"))
+
+        self.assertIn("launch the approved installed app", primary_text)
+        self.assertIn(
+            "explicit authorization covering the app and device", primary_text
+        )
+        self.assertIn("shell am start -n <package>/<activity>", primary_text)
+        self.assertIn("without unapproved intent arguments", primary_text)
+        self.assertIn(
+            "Installing an APK alone does not authorize launching it", primary_text
+        )
+        self.assertIn(
+            "obtain confirmation of those effects before launching", primary_text
+        )
+
     def test_project_configuration_keeps_single_subagent_level(self) -> None:
         config = json.loads(
             (REPOSITORY_ROOT / ".opencode" / "opencode.json").read_text(

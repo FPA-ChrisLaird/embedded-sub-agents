@@ -108,7 +108,16 @@ repeated conversational confirmation. Reconfirm if the device, task, transfer
 paths, or replacement effects change, or if authorization is revoked or unclear.
 This does not waive shell permission prompts or authorize additional operations.
 Use only narrowly scoped `adb shell` commands needed to locate/read these
-files or inspect APK metadata; this is not authorization for arbitrary shell
+files, inspect APK metadata, or launch the approved installed app. Launching
+requires explicit authorization covering the app and device; confirm its
+package/activity from APK metadata or a narrowly scoped read-only activity
+resolution query, then use
+`adb -s <serial> shell am start -n <package>/<activity>` without unapproved
+intent arguments. Installing an APK alone does not authorize launching it.
+Task-scoped authorization may include repeated launches of that same app.
+Explain that launching executes application code and may affect app state or
+connected equipment; obtain confirmation of those effects before launching.
+This is not authorization for arbitrary shell
 execution, root/remount, reboot, uninstall, app-data/log clearing, partition
 writes, or other device operations. Do not collect credentials or unrelated
 private data. Analysis subagents must not run ADB or access devices. ADB stays

@@ -62,6 +62,8 @@ Embedded firmware investigations commonly require broad repository exploration, 
 - For changes to persistent or externally encoded representations, the quality reviewer traces every writer and reports unproven ordering dependencies that can persist incompatible data.
 - Roles prohibit flashing firmware, programming hardware, and device I/O except for the primary's explicitly authorized, approval-gated ADB APK/log workflow. Analysis subagents remain barred from devices. Primary build cleanup such as `make clean` requires explicit approval and inspection confirming that only regenerable build artifacts are removed; other destructive targets remain prohibited. Recognised flashing, programming, package, and release command patterns are hard-denied; other primary shell commands require human approval.
 
+The primary ADB exception includes launching explicitly authorized installed apps, using confirmed package/activity components and the device, effect-confirmation, and shell-approval safeguards in the primary prompt. Installation alone does not authorize a launch; unrelated device operations remain excluded.
+
 ## Verification Plan
 
 - Validate the configuration against the OpenCode schema before saving.
