@@ -255,6 +255,60 @@ class AgentPolicyTests(unittest.TestCase):
         )
         self.assertIn("re-fetch its head SHA and review status", primary_text)
 
+    def test_primary_adb_workflow_is_scoped_and_approval_gated(self) -> None:
+        primary_text = normalized(agent_text("embedded-engineer"))
+        plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "explicit human authorization and shell permission approval", primary_text
+        )
+        self.assertIn("pull or push APKs and log files", primary_text)
+        self.assertIn("install or update APKs", primary_text)
+        self.assertIn("read or capture logs with `adb logcat`", primary_text)
+        self.assertIn("use `adb -s <serial>`", primary_text)
+        self.assertIn(
+            "explain replacement effects before writes or installs", primary_text
+        )
+        self.assertIn("not authorization for arbitrary shell execution", primary_text)
+        self.assertIn(
+            "Analysis subagents must not run ADB or access devices", primary_text
+        )
+        self.assertIn("do not bypass plugin denials", primary_text)
+        self.assertNotIn(
+            "Never flash or program firmware, access a device", primary_text
+        )
+        self.assertNotIn('"adb *": "allow"', plugin_text)
+        self.assertIn('"embedded-engineer": { "*": "ask" }', plugin_text)
+        for name in SUBAGENT_NAMES:
+            self.assertIn(f'"{name}": {{ "*": "deny" }}', plugin_text)
+
+    def test_primary_reuses_bounded_adb_authorization_without_waiving_prompts(
+        self,
+    ) -> None:
+        primary_text = normalized(agent_text("embedded-engineer"))
+
+        self.assertIn("for the current session", primary_text)
+        self.assertIn("without repeated conversational confirmation", primary_text)
+        self.assertIn("Reconfirm if the device, task, transfer paths", primary_text)
+        self.assertIn("authorization is revoked or unclear", primary_text)
+        self.assertIn("does not waive shell permission prompts", primary_text)
+
+    def test_primary_can_launch_only_the_authorized_installed_app(self) -> None:
+        primary_text = normalized(agent_text("embedded-engineer"))
+
+        self.assertIn("launch the approved installed app", primary_text)
+        self.assertIn(
+            "explicit authorization covering the app and device", primary_text
+        )
+        self.assertIn("shell am start -n <package>/<activity>", primary_text)
+        self.assertIn("without unapproved intent arguments", primary_text)
+        self.assertIn(
+            "Installing an APK alone does not authorize launching it", primary_text
+        )
+        self.assertIn(
+            "obtain confirmation of those effects before launching", primary_text
+        )
+
     def test_project_configuration_keeps_single_subagent_level(self) -> None:
         config = json.loads(
             (REPOSITORY_ROOT / ".opencode" / "opencode.json").read_text(
