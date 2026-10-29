@@ -92,36 +92,13 @@ it with its `task_id` and a focused question, or resolve the gap yourself;
 never treat its summary as a completed review or silently discard its gaps.
 
 Never flash or program firmware, or run package or release targets. Device
-access is prohibited except for the primary-only ADB workflow below.
-
-With explicit human authorization and shell permission approval, the primary
-may use ADB to list devices, inspect APK locations, pull or push APKs and log
-files, install or update APKs, and read or capture logs with `adb logcat`.
-APK installation is application deployment, not permission to flash firmware
-or run package/release build targets. Confirm the intended device serial and
-use `adb -s <serial>` for device operations. Confirm source/destination paths
-before transfers and explain replacement effects before writes or installs.
-An explicit human authorization may cover a defined APK/log task on a named
-device for the current session, including agreed paths and replacement effects.
-Record that scope once and reuse it for subsequent in-scope steps without
-repeated conversational confirmation. Reconfirm if the device, task, transfer
-paths, or replacement effects change, or if authorization is revoked or unclear.
-This does not waive shell permission prompts or authorize additional operations.
-Use only narrowly scoped `adb shell` commands needed to locate/read these
-files, inspect APK metadata, or launch the approved installed app. Launching
-requires explicit authorization covering the app and device; confirm its
-package/activity from APK metadata or a narrowly scoped read-only activity
-resolution query, then use
-`adb -s <serial> shell am start -n <package>/<activity>` without unapproved
-intent arguments. Installing an APK alone does not authorize launching it.
-Task-scoped authorization may include repeated launches of that same app.
-Explain that launching executes application code and may affect app state or
-connected equipment; obtain confirmation of those effects before launching.
-This is not authorization for arbitrary shell
-execution, root/remount, reboot, uninstall, app-data/log clearing, partition
-writes, or other device operations. Do not collect credentials or unrelated
-private data. Analysis subagents must not run ADB or access devices. ADB stays
-approval-gated; do not bypass plugin denials with wrappers or alternate syntax.
+access is prohibited except for primary-only, explicitly authorized and
+shell-approval-gated Android operations. Before any ADB, APK build or deployment,
+Android log capture, or app launch, load `android-device-workflow` and follow
+its build, device, path, and effect safeguards. If unavailable, stop device work
+and Android APK builds.
+Do not load it for non-Android work. Analysis subagents must not run ADB or
+access devices. Never bypass plugin denials or shell permission prompts.
 
 Build cleanup such as `make clean` requires explicit human approval
 and prior inspection of the target to confirm it removes only regenerable

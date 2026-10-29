@@ -7,6 +7,9 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPOSITORY_ROOT / ".opencode" / "agents"
 PRIMARY_AGENT = AGENTS_DIR / "embedded-engineer.md"
+ANDROID_SKILL = (
+    REPOSITORY_ROOT / ".opencode" / "skills" / "android-device-workflow" / "SKILL.md"
+)
 INSPECTION_PLUGIN = (
     REPOSITORY_ROOT / ".opencode" / "plugins" / "embedded-repository-inspection.ts"
 )
@@ -255,8 +258,37 @@ class AgentPolicyTests(unittest.TestCase):
         )
         self.assertIn("re-fetch its head SHA and review status", primary_text)
 
-    def test_primary_adb_workflow_is_scoped_and_approval_gated(self) -> None:
+    def test_android_details_are_loaded_only_on_demand(self) -> None:
         primary_text = normalized(agent_text("embedded-engineer"))
+        skill_text = ANDROID_SKILL.read_text(encoding="utf-8")
+
+        self.assertIn("load `android-device-workflow`", primary_text)
+        self.assertIn("If unavailable, stop device work", primary_text)
+        self.assertIn("Do not load it for non-Android work", primary_text)
+        self.assertIn("shell-approval-gated", primary_text)
+        self.assertIn("Analysis subagents must not run ADB", primary_text)
+        self.assertNotIn("shell am start", primary_text)
+        self.assertNotIn("adb logcat", primary_text)
+        self.assertIn("name: android-device-workflow", skill_text.split("---")[1])
+        self.assertIn("description: Use for Android APK builds", skill_text)
+        self.assertIn("UI automation", skill_text)
+
+    def test_android_skill_permits_approved_non_release_apk_builds(self) -> None:
+        skill_text = normalized(ANDROID_SKILL.read_text(encoding="utf-8"))
+
+        self.assertIn("inspected, approval-gated local build tasks", skill_text)
+        self.assertIn("gradlew assembleDebug", skill_text)
+        self.assertIn("task dependencies", skill_text)
+        self.assertIn(
+            "package/release targets, publishing, and distribution remain prohibited",
+            skill_text,
+        )
+        self.assertIn(
+            "does not authorize device access, installation, or launch", skill_text
+        )
+
+    def test_primary_adb_workflow_is_scoped_and_approval_gated(self) -> None:
+        primary_text = normalized(ANDROID_SKILL.read_text(encoding="utf-8"))
         plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
 
         self.assertIn(
@@ -285,7 +317,7 @@ class AgentPolicyTests(unittest.TestCase):
     def test_primary_reuses_bounded_adb_authorization_without_waiving_prompts(
         self,
     ) -> None:
-        primary_text = normalized(agent_text("embedded-engineer"))
+        primary_text = normalized(ANDROID_SKILL.read_text(encoding="utf-8"))
 
         self.assertIn("for the current session", primary_text)
         self.assertIn("without repeated conversational confirmation", primary_text)
@@ -294,7 +326,7 @@ class AgentPolicyTests(unittest.TestCase):
         self.assertIn("does not waive shell permission prompts", primary_text)
 
     def test_primary_can_launch_only_the_authorized_installed_app(self) -> None:
-        primary_text = normalized(agent_text("embedded-engineer"))
+        primary_text = normalized(ANDROID_SKILL.read_text(encoding="utf-8"))
 
         self.assertIn("launch the approved installed app", primary_text)
         self.assertIn(

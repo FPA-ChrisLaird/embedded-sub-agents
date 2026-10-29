@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the embedded OpenCode agents and their shared safety plugin."""
+"""Install the embedded OpenCode agents, safety plugin, and on-demand skill."""
 
 from __future__ import annotations
 
@@ -11,6 +11,10 @@ import tempfile
 from pathlib import Path
 
 MANAGED_FILES = (
+    (
+        Path(".opencode") / "skills" / "android-device-workflow" / "SKILL.md",
+        Path("skills") / "android-device-workflow" / "SKILL.md",
+    ),
     (
         Path(".opencode") / "agents" / "embedded-engineer.md",
         Path("agents") / "embedded-engineer.md",
@@ -119,7 +123,7 @@ def install(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Install the embedded OpenCode agents and safety plugin globally."
+        description="Install the embedded OpenCode agents, plugin, and skill globally."
     )
     parser.add_argument(
         "--config-dir",
@@ -152,7 +156,7 @@ def main(argv: list[str] | None = None, script_path: Path | None = None) -> int:
     if args.dry_run:
         print("Dry run only; no files were changed.")
     else:
-        print("Restart OpenCode to load the installed agents and plugin.")
+        print("Restart OpenCode to load the installed agents, plugin, and skill.")
     return 0
 
 
