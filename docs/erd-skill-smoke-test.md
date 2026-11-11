@@ -8,7 +8,7 @@ OpenCode version. Never auto-approve permissions to make a smoke test pass.
 
 ## Procedure
 
-1. Install with `py -3.13 scripts/install_opencode_agents.py` (or the supported
+1. Install with `py -3.15 scripts/install_opencode_agents.py` (or the supported
    Python interpreter on your workstation), then restart OpenCode in an
    unrelated workspace. Do not supply a checkout path initially.
 2. Select `embedded-engineer` and ask: "Use erd-knowledge to look up 0x0801.

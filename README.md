@@ -96,17 +96,17 @@ For fresh-session behavioral checks and current validation limits, use the
 
 ## Development
 
-The repository uses Invoke to provide repeatable Python checks. Create and activate a virtual environment, install Invoke, then let `inv setup` install the pinned development tools and the pre-commit hook:
+The supported development and CI interpreter is Python 3.15; Python 3.13 is no longer a supported test target. The repository uses Invoke to provide repeatable Python checks. Create and activate a virtual environment, install Invoke, then let `inv setup` install the pinned development tools and the pre-commit hook:
 
 ```powershell
-py -3 -m venv .venv
+py -3.15 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install invoke
 inv setup
 ```
 
 ```sh
-python3 -m venv .venv
+python3.15 -m venv .venv
 . .venv/bin/activate
 python -m pip install invoke
 inv setup
@@ -133,10 +133,9 @@ pinned dependency; activating the development virtual environment is not require
 for that hook. `inv test` runs only pytest; `inv check` checks formatting and lint
 as well, without reformatting files.
 
-The [CI workflow](.github/workflows/python-checks.yml) runs `inv check` on each
-Python version in its matrix using the pinned development requirements.
-The aggregate `Format, lint, and test` gate preserves the required check name
-and passes only when every matrix job succeeds. When changing CI job names,
+The [CI workflow](.github/workflows/python-checks.yml) runs `inv check` on
+Python 3.15 using the pinned development requirements. The single job preserves
+the required `Format, lint, and test` check name. When changing CI job names,
 verify that required status checks in branch protection still match.
 
 The current pilot implements only these four roles. The other roles in the catalogue are future candidates and are not yet available for automatic delegation.
