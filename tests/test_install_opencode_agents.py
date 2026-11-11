@@ -15,6 +15,31 @@ SPEC.loader.exec_module(INSTALLER)
 
 
 class InstallOpenCodeAgentsTests(unittest.TestCase):
+    def test_android_skill_is_an_explicit_managed_file_installed_before_agents(
+        self,
+    ) -> None:
+        self.assertEqual(
+            (
+                Path(".opencode/skills/android-device-workflow/SKILL.md"),
+                Path("skills/android-device-workflow/SKILL.md"),
+            ),
+            INSTALLER.MANAGED_FILES[0],
+        )
+
+    def test_missing_android_skill_fails_before_updating_agents(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repository_root = Path(temporary_directory) / "repository"
+            config_dir = Path(temporary_directory) / "opencode"
+            for source, _ in INSTALLER.MANAGED_FILES[1:]:
+                path = repository_root / source
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("source", encoding="utf-8")
+
+            with self.assertRaises(FileNotFoundError):
+                INSTALLER.install(repository_root, config_dir)
+
+            self.assertFalse(config_dir.exists())
+
     def test_installs_all_managed_files_with_identical_content(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             config_dir = Path(temporary_directory) / "opencode"
