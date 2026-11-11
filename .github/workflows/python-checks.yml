@@ -11,8 +11,12 @@ permissions:
 
 jobs:
   check:
-    name: Format, lint, and test
+    name: Format, lint, and test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.15"]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -20,10 +24,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
 
       - name: Run checks
         run: python -m invoke check
+
+  required-check:
+    name: Format, lint, and test
+    needs: check
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all Python versions to pass
+        env:
+          CHECK_RESULT: ${{ needs.check.result }}
+        run: test "$CHECK_RESULT" = success

@@ -125,6 +125,20 @@ inv install-agents  Run the default global OpenCode agent installer.
 
 `inv setup` prepares developer tooling only; it does not install or overwrite the global OpenCode suite. Use `inv install-agents` for the default installation, or run `scripts/install_opencode_agents.py` directly when using `--dry-run` or `--config-dir`.
 
+The [commit hook configuration](.pre-commit-config.yaml) runs Black, Flake8,
+the full pytest suite (including for non-Python changes), and repository safety
+checks. Black may reformat staged Python files and stop the commit so you can
+inspect and restage them. The pytest hook uses an isolated environment with a
+pinned dependency; activating the development virtual environment is not required
+for that hook. `inv test` runs only pytest; `inv check` checks formatting and lint
+as well, without reformatting files.
+
+The [CI workflow](.github/workflows/python-checks.yml) runs `inv check` on each
+Python version in its matrix using the pinned development requirements.
+The aggregate `Format, lint, and test` gate preserves the required check name
+and passes only when every matrix job succeeds. When changing CI job names,
+verify that required status checks in branch protection still match.
+
 The current pilot implements only these four roles. The other roles in the catalogue are future candidates and are not yet available for automatic delegation.
 
 ## Why Subagents
