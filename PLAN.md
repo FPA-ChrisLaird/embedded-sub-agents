@@ -8,9 +8,9 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 - Set `subagent_depth` to `1`: the primary agent may delegate, but no subagent may delegate further.
 - Start with four roles: `embedded-engineer`, `embedded-architecture-analyst`, `embedded-c-quality-reviewer`, and `embedded-build-analyzer`.
 - Make analysis roles read-only. Add `embedded-c-implementer` only after the analysis pilot produces reliable, useful hand-offs.
-- Prohibit hardware programming and device I/O except for explicitly authorized, approval-gated primary ADB workflows in the on-demand `android-device-workflow` skill. The primary prompt keeps a short mandatory-load, fail-closed device boundary; non-Android tasks do not load the skill body. Install the skill with the managed suite. Analysis subagents cannot use ADB. The primary may run build cleanup such as `make clean` after explicit approval and target inspection confirming that only regenerable build artifacts are removed; other destructive targets remain prohibited. The primary requires approval for non-allow-listed commands; recognised flashing, programming, package, and release patterns remain hard-denied.
+- Keep permanent safety and delegation boundaries in the [primary agent](.opencode/agents/embedded-engineer.md), shared enforced shell rules in the [plugin](.opencode/plugins/embedded-repository-inspection.ts), and detailed workflows in [on-demand skills](.opencode/skills/). Follow the [policy ownership guide](README.md#policy-ownership); this plan tracks rollout rather than duplicating operational rules. Keep analysis agents read-only and device execution primary-only.
 - Do not enable Jira, Confluence, or Xray retrieval for subagents during the initial pilot. Allow only read-only GitHub CLI retrieval plus exact non-mutating Git inspection commands for repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
-- Use GPT-6.1 Sol with `xhigh` for `embedded-engineer`, `embedded-c-quality-reviewer`, and `embedded-architecture-analyst`; retain GPT-6 Luna with `medium` for the narrower build-tracing role. Set the repository default model to `github-copilot/gpt-6.1-sol` with `reasoningEffort: xhigh`.
+- Maintain model, reasoning, and step settings in [agent frontmatter](.opencode/agents/) and defaults in [project configuration](.opencode/opencode.json); evaluate those settings during the pilot rather than duplicating their values here.
 - Do not create embedded-specific skills until repeated work demonstrates the organisational conventions they must encode.
 
 ## Tasks
@@ -27,7 +27,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
   - `embedded-build-analyzer.md`: trace Makefiles, scripts, toolchains, targets, artefacts, and hazardous commands.
   - Set `mode: subagent`, `permission.task: deny`, and `edit: deny` on each agent.
   - Allow workspace read, glob, grep, and list operations. The shared repository-inspection plugin appends read-only `gh` and exact non-mutating Git inspection command allow-lists; it denies all other shell commands.
-  - Set `steps: 20` for the architecture analyst, `steps: 60` for the quality reviewer, and `steps: 12` for the build analyzer.
+  - Verify step limits against the current agent frontmatter and policy tests.
   - Require every response to state scope, evidence, assumptions, risks, and recommended next action. Quality reviews must separately state residual risks.
 
 - [x] Add and version-control the delegation configuration in `.opencode/opencode.json`, then merge it into `C:\Users\lairdc\.config\opencode\opencode.json`.
@@ -52,6 +52,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
   - Review a change to versioned persistent data and verify that the quality reviewer enumerates all writers, proves version-marker coupling, and rejects unproven event-ordering dependencies. If an architecture report is needed, verify that it covers only distinct cross-module ownership, reader, migration, recovery, or state-flow questions.
 
 - [ ] Evaluate the pilot before expanding the suite.
+  - Retain the four-agent structure unless recurring work demonstrates a distinct context-isolation need. Prefer a narrowly triggered skill for optional workflow knowledge; avoid repeating skill procedures in permanent prompts or general documentation.
   - Measure whether the hand-offs preserve primary-session context, avoid duplicated investigation, and provide actionable evidence.
   - Assess whether the selected models, reasoning variants, step limits, and one-subagent default yield sufficient results without unnecessary cost or incomplete hand-offs.
   - Confirm that any requested permission change is supported by pilot evidence and preserves the read-only subagent and hazardous-command boundaries.
@@ -79,7 +80,7 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 - Quality-review hand-offs identify residual risks separately from findings and evidence gaps.
 - The primary resumes an exhausted subagent or resolves its remaining review gap before finalising.
 - Versioned persistent-data reviews trace every writer and identify unproven event ordering that can persist incompatible data.
-- Roles prohibit flashing firmware, programming devices, and device I/O outside the explicitly authorized, approval-gated primary ADB APK/log workflow. Analysis subagents remain barred from devices. Primary build cleanup requires explicit approval and inspection confirming that only regenerable build artifacts are removed; other destructive targets remain prohibited. Recognised flashing, programming, package, and release command patterns are hard-denied; other primary shell commands require human approval.
+- Policy tests preserve the boundaries in the [primary agent](.opencode/agents/embedded-engineer.md), [plugin](.opencode/plugins/embedded-repository-inspection.ts), and [skills](.opencode/skills/), including fail-closed Android skill loading and read-only subagents. Workflow knowledge stays on demand; documentation links point to the owning sources.
 
 ## Out Of Scope
 
