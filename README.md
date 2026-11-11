@@ -32,7 +32,7 @@ py -3 .\scripts\install_opencode_agents.py
 python3 ./scripts/install_opencode_agents.py
 ```
 
-The installer copies the four agent files, shared plugin, and on-demand `android-device-workflow` skill to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). The skill is installed before the agent that requires it. It does not remove files or rewrite `opencode.json`, so it preserves credentials, providers, models, MCP servers, and unrelated configuration. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview the changes or `--config-dir PATH` to install to a non-standard or test location. A global `disable: true` override can intentionally keep the suite unavailable during an A/B comparison with built-in Plan and Build. Quit and restart OpenCode after any configuration change.
+The installer copies the four agent files, shared plugin, and on-demand `android-device-workflow` and `erd-knowledge` skills to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). Skills are installed before agents. It does not remove files or rewrite `opencode.json`, so it preserves credentials, providers, models, MCP servers, and unrelated configuration. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview the changes or `--config-dir PATH` to install to a non-standard or test location. A global `disable: true` override can intentionally keep the suite unavailable during an A/B comparison with built-in Plan and Build. Quit and restart OpenCode after any configuration change.
 
 ### Git inspection without prompts
 
@@ -59,6 +59,22 @@ The primary `embedded-engineer` auto-approves access to the trusted local skill
 directory, `C:\Users\lairdc\.agents\**`, so loading installed skills does not
 trigger an external-directory prompt. Other external paths still prompt, and
 the analysis subagents remain denied external-directory access.
+
+### On-demand ERD knowledge
+
+The primary can load `erd-knowledge` for ERD lookup and payload interpretation.
+On first use it asks for the local `documentation.erd-specification` checkout
+path, or reuses one already supplied in the session, without copying the
+catalogue or adding it to the permanent agent prompt. It validates the source
+directory and remembers that path for the session only. Permit external access
+when prompted; installation does not broaden global or subagent permissions.
+The live checkout supplies weekly definition updates without reinstalling the
+skill. Revision/source rechecks prevent silently mixing mid-investigation
+updates; repository structure or DSL changes may need a skill update.
+The skill follows shared Lua definitions, records source/version evidence,
+distinguishes public ERDs from device/version-specific service and private
+ERDs, and complements `decode-gea-comms` for transport captures. It does not
+authorize ERD writes or device operations. Non-ERD tasks do not load its body.
 
 ## Development
 

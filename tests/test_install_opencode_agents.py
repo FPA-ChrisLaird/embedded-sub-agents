@@ -15,6 +15,15 @@ SPEC.loader.exec_module(INSTALLER)
 
 
 class InstallOpenCodeAgentsTests(unittest.TestCase):
+    def test_erd_skill_is_an_explicit_managed_file(self) -> None:
+        self.assertIn(
+            (
+                Path(".opencode/skills/erd-knowledge/SKILL.md"),
+                Path("skills/erd-knowledge/SKILL.md"),
+            ),
+            INSTALLER.MANAGED_FILES,
+        )
+
     def test_android_skill_is_an_explicit_managed_file_installed_before_agents(
         self,
     ) -> None:
