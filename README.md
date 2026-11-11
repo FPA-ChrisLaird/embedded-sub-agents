@@ -22,7 +22,29 @@ This repository is the version-controlled source of truth for the initial pilot.
 - `docs/workplans/Embedded-Subagent-Pilot-Charter.md` defines the pilot's purpose, boundaries, and acceptance criteria.
 - `PLAN.md` tracks the pilot's remaining verification and evaluation tasks.
 
-OpenCode automatically loads this configuration when started in this repository. It selects `embedded-engineer` as the default agent and `github-copilot/gpt-6.1-sol` as the default model, with `xhigh` reasoning. The primary engineer, architecture analyst, and quality reviewer explicitly use Sol 6.1 with `xhigh`; the build analyzer retains GPT-6 Luna with `medium` for bounded build tracing. These defaults are repository-scoped and do not rewrite global model preferences. To install the agent suite globally, run the cross-platform Python 3 installer from the repository root:
+### Policy ownership
+
+- [Agent definitions](.opencode/agents/) own role responsibilities, delegation,
+  evidence standards, and permanent safety boundaries. The primary retains
+  decisions and verification; the three analysis agents remain read-only.
+- The [inspection plugin](.opencode/plugins/embedded-repository-inspection.ts)
+  owns the shared enforced shell permission rules. Agent frontmatter owns each
+  role's other tool permissions; [project configuration](.opencode/opencode.json)
+  owns project defaults and nesting depth. A skill cannot override these rules.
+- Each [on-demand skill](.opencode/skills/) owns its detailed workflow and
+  safeguards. Load only relevant skills; do not copy their procedures into the
+  permanent agent prompts or general documentation.
+- This README is the installation and navigation guide. The
+  [charter](docs/workplans/Embedded-Subagent-Pilot-Charter.md) records purpose and
+  acceptance criteria; [PLAN.md](PLAN.md) tracks rollout and evaluation.
+  Their summaries do not grant permissions or replace the operational sources.
+
+When changing behavior, update its owning source and regression tests first,
+then adjust links or scope summaries where needed. Keep the four-agent pilot
+until recurring work demonstrates a need for a separate context boundary;
+adding a skill does not add a device-execution agent.
+
+OpenCode automatically loads this configuration when started in this repository. See [project configuration](.opencode/opencode.json) for the default agent/model and [agent frontmatter](.opencode/agents/) for role-specific models, reasoning variants, and step limits. These defaults are repository-scoped and do not rewrite global model preferences. To install the agent suite globally, run the cross-platform Python 3 installer from the repository root:
 
 ```powershell
 py -3 .\scripts\install_opencode_agents.py
@@ -63,18 +85,14 @@ the analysis subagents remain denied external-directory access.
 ### On-demand ERD knowledge
 
 The primary can load `erd-knowledge` for ERD lookup and payload interpretation.
-On first use it asks for the local `documentation.erd-specification` checkout
-path, or reuses one already supplied in the session, without copying the
-catalogue or adding it to the permanent agent prompt. It validates the source
-directory and remembers that path for the session only. Permit external access
-when prompted; installation does not broaden global or subagent permissions.
-The live checkout supplies weekly definition updates without reinstalling the
-skill. Revision/source rechecks prevent silently mixing mid-investigation
-updates; repository structure or DSL changes may need a skill update.
-The skill follows shared Lua definitions, records source/version evidence,
-distinguishes public ERDs from device/version-specific service and private
-ERDs, and complements `decode-gea-comms` for transport captures. It does not
-authorize ERD writes or device operations. Non-ERD tasks do not load its body.
+The [ERD knowledge skill](.opencode/skills/erd-knowledge/SKILL.md) owns checkout
+selection, source/version checks, shared-type resolution, interpretation rules,
+and the output contract. It reads a user-selected live specification checkout
+rather than embedding the catalogue, and complements `decode-gea-comms` for
+transport captures. It does not authorize ERD writes or device operations.
+Non-ERD tasks do not load its body; installation does not expand permissions.
+For fresh-session behavioral checks and current validation limits, use the
+[interactive ERD smoke test](docs/erd-skill-smoke-test.md).
 
 ## Development
 
@@ -123,73 +141,54 @@ Context isolation is a primary reason to use subagents. Each subagent begins wit
 
 Subagents do not have authority over the final design or change. The `embedded-engineer` retains the requirements, decisions, cross-cutting trade-offs, integration work, and final verification.
 
-| Agent / subagent                | Mode     | Responsibilities / coverage                                                                                                              | Generation / permissions                                                                  | Default model | Selective alternatives                                                                |
-|---------------------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|---------------|---------------------------------------------------------------------------------------|
-| `embedded-engineer`             | Primary  | Coordinates investigations, selects safe changes, delegates work, integrates results, and verifies implementations.                      | Edits allowed; non-inspection commands ask; recognised hazardous command patterns denied. | GPT-6.1 Sol   | Claude Sonnet 5; Gemini 3.1 Pro                                                       |
-| `embedded-architecture-analyst` | Subagent | Maps execution contexts and dependencies; assesses state machines, ISR hand-off, HAL boundaries, configuration, and resources.           | Returns analysis and design options; read-only.                                           | GPT-6.1 Sol   | Gemini 3.1 Pro; Claude Sonnet 5                                                       |
-| `embedded-c-quality-reviewer`   | Subagent | Reviews correctness, concurrency, integer safety, undefined behavior, timing, memory, register effects, lint/MISRA, and static analysis. | Returns evidence-backed findings; read-only.                                              | GPT-6.1 Sol   | Grok 4.6 for independent counter-review; Claude Sonnet 5; Claude Opus 4.8/5           |
-| `embedded-test-designer`        | Subagent | Designs host and target tests, mocks, fakes, boundary conditions, fault injection, coverage improvements, and regression tests.          | Drafts test code and plans in its response; read-only.                                    | GPT-5.6 Terra | GPT-5.3 Codex; Claude Sonnet 5; Gemini 3.1 Pro                                        |
-| `embedded-c-implementer`        | Subagent | Implements a tightly bounded firmware or test change, preserving local conventions and reporting verification.                           | Edits allowed; commands ask; flash and device I/O denied.                                 | GPT-5.6 Terra | GPT-5.3 Codex; Claude Sonnet 5                                                        |
-| `embedded-build-analyzer`       | Subagent | Traces Makefiles, scripts, toolchains, flags, targets, variants, artifacts, dependencies, and unsafe commands.                           | Reports safe commands and risks; read-only.                                               | GPT-6 Luna    | DeepSeek V4 Pro; Gemini 3.1 Flash-Lite; Gemini 3 Flash; Gemini 3.5 Flash; GPT-6.1 Sol |
-| `embedded-debugger`             | Subagent | Diagnoses compiler and test failures, logs, crashes, watchdog resets, protocol traces, and suspected hardware interactions.              | Returns ranked root-cause hypotheses; read-only.                                          | GPT-5.6 Terra | Grok 4.6 for independent diagnosis; Claude Sonnet 5; GPT-5.6 Luna for log triage      |
-| `embedded-hardware-reviewer`    | Subagent | Reviews HAL and driver changes for register access, initialization order, interrupt configuration, pin safety, and assumptions.          | Returns risks and required datasheet checks; read-only.                                   | GPT-5.6 Terra | Gemini 3.1 Pro; Claude Sonnet 5                                                       |
+The implemented role definitions are the authoritative catalogue:
 
-Use Grok 4.6 only when an independent reasoning path is valuable: a high-consequence quality finding or a difficult diagnosis where the primary model has already produced a hypothesis. Sol 6.1 is the default for the three implemented coordination and correctness-analysis roles; Luna remains the build analyzer's default. Model recommendations for unimplemented catalogue roles are provisional and do not configure additional agents.
+- [Primary engineer](.opencode/agents/embedded-engineer.md): coordination and integration.
+- [Architecture analyst](.opencode/agents/embedded-architecture-analyst.md): structure and execution contexts.
+- [Quality reviewer](.opencode/agents/embedded-c-quality-reviewer.md): correctness and evidence.
+- [Build analyzer](.opencode/agents/embedded-build-analyzer.md): build-system investigation.
+
+Potential implementer, test-designer, debugger, and hardware-reviewer roles are
+evaluation candidates in [PLAN.md](PLAN.md), not installed agents. Choose any
+future model assignments through evaluation rather than an alternative-model
+table that can drift from executable configuration.
 
 Source formatting should remain deterministic tooling, such as `clang-format` or `uncrustify`, rather than an LLM agent.
 
-All roles prohibit firmware flashing and programming. Device I/O is prohibited except for the primary-only ADB workflow below. The shared plugin hard-denies recognised flashing, programming, package, and release command patterns. The primary may run build cleanup such as `make clean` only after explicit human approval and inspection confirming that the target removes only regenerable build artifacts; other destructive targets remain prohibited. Cleanup is not auto-approved. The primary may run other non-allow-listed shell commands only after human approval; approval is not evidence that a command is safe or suitable. Read-only subagents may generate reports, design options, and code proposals in their responses, but cannot modify the workspace or execute local commands other than the allow-listed, read-only `gh` commands and bounded, non-mutating Git inspection commands used to inspect repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
+Safety and approval boundaries are defined in the
+[primary agent](.opencode/agents/embedded-engineer.md) and enforced where
+applicable by the [inspection plugin](.opencode/plugins/embedded-repository-inspection.ts).
+Firmware flashing remains prohibited; the primary owns approved build cleanup
+and the scoped Android exception. Analysis agents remain read-only and cannot
+access devices. See the owning files for exact rules, not this summary.
 
 ### Approved ADB application and log workflows
 
-Detailed Android instructions live in `.opencode/skills/android-device-workflow/SKILL.md`, not the primary agent's permanent prompt. Before Android APK builds or device work the primary must load that skill; if it is unavailable, that work stops. Non-Android tasks do not load its body (only the short discovery metadata remains available). The skill permits inspected, approval-gated local APK builds such as `gradlew assembleDebug`; package/release targets, publishing, and distribution remain prohibited. Building does not authorize installation or launch. It preserves APK transfer/install, log capture, and approved launches; it does not add UI automation or a device-execution subagent.
-
-The primary may also launch an approved installed app with `adb -s <serial> shell am start -n <package>/<activity>`, after confirming the component from metadata or a narrowly scoped read-only activity-resolution query. Authorization must cover launching that app on that device, including its effects on app state or connected equipment; installation alone is not launch authorization. A task authorization may cover repeated launches of the same app. Unapproved intent arguments and unrelated shell operations remain prohibited, and shell permission prompts still apply.
-
-Authorization can cover a defined APK/log task on a named device for the current session, including agreed transfer paths and replacement effects. The agent records and reuses that scope rather than repeatedly asking conversationally about in-scope steps. It must reconfirm changes to the device, task, paths, or replacement effects, and stop if authorization is revoked or unclear. Shell permission prompts are unchanged; this does not authorize additional device operations.
-
-Only the primary agent may use ADB, with explicit human authorization and shell permission approval, to discover devices, locate/read APK and log files, pull/push those files, install/update APKs, launch approved installed apps, and read/capture `adb logcat`. It must confirm the target serial, use `adb -s <serial>` for device operations, confirm transfer paths, and explain overwrites or app replacement before writing. APK installation does not permit firmware flashing or package/release build targets. Device-side shell commands are limited to locating/reading those files, inspecting APK metadata, resolving the approved app's launch activity, and launching it as described above; arbitrary shell execution, root/remount, reboot, uninstall, app-data/log clearing, partition writes, and unrelated private-data collection remain outside this exception. ADB is not auto-approved, existing plugin denials still apply, and wrappers must not be used to bypass them. Analysis subagents cannot use ADB.
+The [Android device workflow](.opencode/skills/android-device-workflow/SKILL.md)
+owns the detailed authorization, build, device, transfer-path, launch-effect,
+and context-budget safeguards. Its scope includes approved non-release APK
+builds, APK transfers/installation, log capture, and installed-app launches;
+UI automation remains outside that scope. The primary prompt requires loading
+the skill before Android work and stopping if it is unavailable. Non-Android
+tasks do not load its body. Skills do not waive shell approval or plugin denials.
 
 ## Delegation Controls
 
 The primary agent may delegate focused, independent investigations. It should not create an unbounded hierarchy of agents or use subagents as a substitute for a decision owner.
 
-| Control                   | Recommended configuration or prompt rule                                                                                                                                                                                            | Effect                                                                                                                          |
-|---------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| Nesting depth             | Set top-level `subagent_depth` to `1`.                                                                                                                                                                                              | The primary agent may launch a subagent; a subagent cannot launch another subagent.                                             |
-| Subagent task permission  | Set `task: deny` in every subagent's permissions.                                                                                                                                                                                   | Provides a per-agent defence in depth against recursive delegation.                                                             |
-| Primary task allow-list   | Deny `task: "*"` first, then allow only the three named analysis agents.                                                                                                                                                            | Limits automatic delegation to the defined pilot suite.                                                                         |
-| Per-agent iteration limit | Leave the interactive primary agent unlimited. Use `steps: 20` for the architecture analyst, `steps: 60` for the quality reviewer, and `steps: 12` for the build analyzer.                                                          | Bounds autonomous investigation cost. On reaching the limit, OpenCode requires the subagent to return a summary.                |
-| Parallel fan-out          | Do not delegate routine work by default. Start with one focused subagent; use two or three only for explicitly independent, cross-cutting questions. Never launch more than three or delegate overlapping work.                     | Reduces fresh-session latency and duplicated investigation while retaining independent specialist review when it adds value.    |
-| Delegation input          | Give each subagent one question, relevant paths or artefacts, constraints, and its expected output. Do not delegate an undifferentiated repository-wide task.                                                                       | Preserves context isolation and makes the result actionable.                                                                    |
-| Persistent data           | Always assign writer, marker, persistence-ordering, and test-coverage review to the quality reviewer. Use the architecture analyst only for a separate cross-module ownership, reader, migration, recovery, or state-flow question. | Avoids duplicated lifecycle investigation while retaining the mandatory persistence correctness review.                         |
-| Delegation output         | Require scope, evidence, assumptions, risks, and a recommended next action; use a concise word limit appropriate to the task.                                                                                                       | Keeps child-session findings from overwhelming the primary context.                                                             |
-| Exhausted investigation   | The primary must resume an exhausted subagent by its returned task ID with a focused question, or resolve its remaining gap itself before finalising.                                                                               | Prevents an incomplete hand-off from being treated as a completed review.                                                       |
-| Direct user invocation    | Keep safety permissions on every subagent. `task` rules control model delegation only; users can still invoke an agent directly with `@`, even when the primary's `task` permission denies that agent.                              | Treat task permissions as routing controls, not a security boundary.                                                            |
-| Repository inspection     | Allow listed `gh` read commands, read-only `gh api` queries, and bounded non-mutating Git inspection commands; keep all other shell commands at `ask` for the primary and denied for subagents.                                     | Avoids approval prompts for repository, PR, and Actions context plus local state without granting unreviewed command execution. |
+For exact delegation rules, use these sources instead of a copied configuration:
 
-This configuration establishes the recommended delegation boundary:
+- [Project configuration](.opencode/opencode.json): nesting depth.
+- [Primary agent](.opencode/agents/embedded-engineer.md): task allow-list,
+  focused delegation, fan-out, persistence-review routing, and incomplete hand-offs.
+- [Analysis agent definitions](.opencode/agents/): step limits, read-only tool
+  permissions, and output contracts.
+- [Inspection plugin](.opencode/plugins/embedded-repository-inspection.ts):
+  shared shell rules.
 
-```json
-{
-  "subagent_depth": 1,
-  "agent": {
-    "embedded-engineer": {
-      "mode": "primary",
-      "permission": {
-        "task": {
-          "*": "deny",
-          "embedded-architecture-analyst": "allow",
-          "embedded-c-quality-reviewer": "allow",
-          "embedded-build-analyzer": "allow"
-        }
-      }
-    }
-  }
-}
-```
-
-Each subagent should set `mode: subagent`, its role-appropriate `steps` value, and `permission.task: deny`. The primary agent should reconcile conflicting findings and remain responsible for final technical decisions, changes, and verification.
+Direct user invocation is not constrained by the primary's task routing, so
+each agent's own permissions remain necessary. The primary owns reconciliation
+and final verification, not the specialist or the skill.
 
 ## Installed Skill Synergy
 

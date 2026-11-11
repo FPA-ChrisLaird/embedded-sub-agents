@@ -29,13 +29,14 @@ Embedded firmware investigations commonly require broad repository exploration, 
 
 - Firmware, build-system, or hardware changes.
 - Subagent file edits or local shell command execution. Read-only GitHub CLI retrieval and exact non-mutating Git inspection are in scope.
-- Firmware flashing, programming, device I/O outside the explicitly authorized primary ADB APK/log workflow, destructive targets beyond approved regenerable build-artifact cleanup, automated commits, pushes, pull-request comments, or history rewriting. The primary may transfer APK/log files, install/update APKs, and read/capture logs with approval and the device/path safeguards defined in the on-demand `android-device-workflow` skill; its prompt requires loading that skill before Android work. Analysis subagents cannot use ADB. Recognised flashing, programming, package, and release command patterns are hard-denied; any other primary shell command requires human approval. Build cleanup such as `make clean` also requires prior target inspection confirming that only regenerable build artifacts are removed.
+- Firmware flashing, unauthorized device access or destructive operations, and unrequested Git/GitHub mutations. The [primary agent](../../.opencode/agents/embedded-engineer.md) owns the approval boundaries and build-cleanup exception; the [Android skill](../../.opencode/skills/android-device-workflow/SKILL.md) owns the scoped Android workflow. The [plugin](../../.opencode/plugins/embedded-repository-inspection.ts) owns shared enforced shell rules. This scope summary does not grant additional permissions.
 - Enabling Jira, Confluence, Xray, or other external retrieval integrations for subagents during the initial pilot. Read-only GitHub CLI retrieval is in scope.
 - Adding `embedded-c-implementer`, `embedded-test-designer`, `embedded-debugger`, `embedded-hardware-reviewer`, or embedded-specific skills before the pilot demonstrates a recurring need.
 - Replacing deterministic C/C++ formatters with an LLM.
 
 ## Constraints & Assumptions
 
+- Use the [policy ownership guide](../../README.md#policy-ownership): agent definitions own permanent role/safety boundaries, the plugin owns shared enforced shell rules, and skills own detailed workflows. This charter owns purpose and acceptance criteria, not duplicate command procedures.
 - Agent definitions are global OpenCode configuration so they are reusable rather than tied to a product or toolchain.
 - The secret-free agent definitions, shared repository-inspection plugin, and depth configuration are version-controlled in this repository as the canonical source, then installed into global OpenCode configuration for reuse across projects.
 - Read-only agents may use workspace read, glob, grep, and list operations, plus allow-listed read-only `gh` commands and exact non-mutating Git inspection commands applied by the shared plugin. They must deny edit, task, and all other shell permissions.
@@ -43,7 +44,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 
 ## Decisions
 
-- The interactive primary agent has no step limit. The architecture analyst uses `steps: 20`, the quality reviewer uses `steps: 60`, and the build analyzer uses `steps: 12`.
+- Role-specific step limits live in [agent frontmatter](../../.opencode/agents/) and are checked by policy tests; evaluate their effectiveness during the pilot.
 - The primary task permission denies by default, then allows only the three analysis roles. Rule order matters because the last matching rule wins.
 - The primary agent's prompt, rather than configuration, limits fan-out because OpenCode does not currently provide a fan-out limit.
 - `task` permissions restrict automatic model delegation only. Direct user `@` invocation remains possible, so every subagent must enforce its own safety permissions.
@@ -60,9 +61,8 @@ Embedded firmware investigations commonly require broad repository exploration, 
 - Quality-review hand-offs identify residual risks separately from findings and evidence gaps.
 - An exhausted subagent investigation is resumed or its remaining gap is resolved by the primary before the parent task is finalised.
 - For changes to persistent or externally encoded representations, the quality reviewer traces every writer and reports unproven ordering dependencies that can persist incompatible data.
-- Roles prohibit flashing firmware, programming hardware, and device I/O except for the primary's explicitly authorized, approval-gated ADB APK/log workflow. Analysis subagents remain barred from devices. Primary build cleanup such as `make clean` requires explicit approval and inspection confirming that only regenerable build artifacts are removed; other destructive targets remain prohibited. Recognised flashing, programming, package, and release command patterns are hard-denied; other primary shell commands require human approval.
-
-The primary ADB exception includes launching explicitly authorized installed apps, using confirmed package/activity components and the device, effect-confirmation, and shell-approval safeguards in the on-demand `android-device-workflow` skill. The skill also permits inspected, approval-gated local non-release APK builds, without authorizing package/release targets, publishing, or deployment. The primary must load the skill before Android APK builds or device work and stop if it is unavailable; non-Android tasks do not load its detailed instructions. The installer deploys the skill before the primary agent. Installation alone does not authorize a launch; unrelated device operations, including UI automation, remain excluded.
+- Regression tests preserve operational safety boundaries in their owning [agent](../../.opencode/agents/embedded-engineer.md), [plugin](../../.opencode/plugins/embedded-repository-inspection.ts), and [skill](../../.opencode/skills/) sources. Analysis subagents remain barred from devices; optional Android and ERD workflow details are loaded only when relevant.
+- The installer deploys managed skills before agents. The primary fails closed if the required Android skill is unavailable. Adding a skill does not expand permissions or add a device-execution subagent.
 
 ## Verification Plan
 
