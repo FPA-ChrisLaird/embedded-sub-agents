@@ -45,7 +45,40 @@ OpenCode version. Never auto-approve permissions to make a smoke test pass.
   for 0x0800, and reported the enum values above with source references.
   The checkout was clean at `5647a7e45bb07fcf9558b718d8630f5aadd47725`;
   HEAD was unchanged on recheck and the inspected files matched HEAD.
+- After configuring primary-only, path-scoped access in local global
+  configuration, the user reported that a new-session lookup with the checkout
+  path supplied showed no external-directory prompt. Some Git commands still
+  prompted. This is user-reported confirmation of directory access, not a
+  captured trace proving the full lookup, Git checks, or interpretation.
 - Path-question behavior with no supplied path, separate follow-up reuse,
   and revision-change recovery still require interactive verification. The
   completed lookup used the project skill; global discovery/loading was
   verified separately above. Do not claim broader behavioral coverage.
+
+## Optional persistent checkout access
+
+The skill cannot grant itself permissions. To avoid repeated directory prompts,
+the user may explicitly authorize an administrator or the primary agent to add
+a rule in their local `~/.config/opencode/opencode.json`:
+
+- Scope the rule to `agent.embedded-engineer.permission.external_directory`
+  and the exact approved checkout subtree, not its parent or all external paths.
+- Keep unrelated external paths at `ask` and leave analysis agents unchanged.
+- Preserve existing settings. OpenCode uses the last matching permission rule;
+  inspect the effective agent configuration, including catch-all rules and
+  file-based agent overrides, rather than assuming a JSON entry is effective.
+- Restart OpenCode and test from a new session outside the checkout with a
+  narrowly scoped read-only lookup. A directory prompt indicates that the rule
+  is not effective; do not bypass it or broaden access to make the test pass.
+
+Keep the real checkout path and its access rule in local configuration, not in
+this shared repository or the skill. The installer does not manage or rewrite
+that local configuration. Directory permission removes only the external-path
+approval boundary; it is not a read-only filesystem sandbox and does not grant
+authorization to modify the checkout. The skill's read-only workflow and
+existing sensitive-file/tool restrictions still apply.
+
+Git permissions are separate. Revision and working-tree checks can still
+prompt if their command form is not in the inspection plugin's bounded
+allow-list. Use the existing permitted read-only forms where applicable; do
+not add a broad `git *` allowance or compose commands to avoid approval.
