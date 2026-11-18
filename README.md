@@ -28,8 +28,9 @@ This repository is the version-controlled source of truth for the initial pilot.
   evidence standards, and permanent safety boundaries. The primary retains
   decisions and verification; the three analysis agents remain read-only.
 - The [inspection plugin](.opencode/plugins/embedded-repository-inspection/index.ts)
-  owns the shared shell policy. Its ordered rules are also generated into native
-  agent frontmatter so enforcement does not depend on plugin activation order.
+  owns the shared shell policy. Its per-command rules are also generated into
+  agent frontmatter so they do not depend on plugin activation order. The
+  whole-command check requires the active plugin.
   Agent frontmatter owns each role's other tool permissions;
   [project configuration](.opencode/opencode.json) owns project defaults and
   nesting depth. A skill cannot override these rules.
@@ -86,18 +87,24 @@ not provide the former LSP diagnostics; use project lint/compiler checks.
 Skills remain in their existing V2-compatible layout and load on demand.
 
 OpenCode V2 can apply file-based agents after user plugin transforms. Therefore
-the native frontmatter includes a generated copy of the complete shared shell
-policy, including its default and final denials. Missing or early-loading
-plugins cannot silently remove those rules. After changing the policy in the
+the native frontmatter includes a generated copy of the shared per-command
+rules, including their default and final denials. Missing or early-loading
+plugins cannot silently remove those rules. After changing those rules in the
 plugin, run `python scripts/sync_agent_shell_policy.py --write` and inspect the
 generated agent diffs. The test suite checks exact policy equality and evaluates
 its ordered outcomes; do not hand-edit the marked generated blocks.
 
 Verify discovery with `opencode api get /api/agent` and
 `opencode api get /api/plugin` from the target project. Confirm all four agents
-and the active `embedded-repository-inspection` plugin, then check delegation
-and approval behavior in a fresh session. Automated tests cover configuration
-and the plugin transform contract, not model behavior or interactive approvals.
+and the active `embedded-repository-inspection` plugin, including its source
+path. If OpenCode loads the global copy first and reports a duplicate plugin
+ID for the project copy, rerun the installer to update the active global copy.
+Check delegation and approval behavior in a fresh session. Automated tests
+cover configuration and plugin behavior with SDK-shaped fixtures by default.
+To also exercise the real shell tool, set `OPENCODE_SMOKE_TEST=1` in your
+environment and run `python -m pytest tests/test_opencode_shell_guard_integration.py`
+with OpenCode V2 on `PATH`. This opt-in test uses an isolated standalone runtime
+with a loopback model fixture; it needs no provider account.
 The repository migration was checked with OpenCode v2.2.7: all four native agent
 definitions and the local V2 plugin loaded, and the API returned the generated
 shell rules. Global-only installation and conversational behavior still need
@@ -115,9 +122,12 @@ submodule status. Use the plugin's canonical flags, such as
 does not take an optional index lock and diffs cannot invoke external helpers or
 repository-configured text-conversion filters.
 
-Inspection commands must be invoked individually: shell composition (`&&`,
-`||`, `;`, or `|`) remains denied so an approved read command cannot be combined
-with an unreviewed action. Commands that can alter Git state—including staging,
+Run inspection commands individually. OpenCode V2 checks permissions on each
+extracted command, so the active plugin also checks the complete shell input
+before execution for the four embedded agents. It conservatively rejects `&`,
+`|`, `;`, and line breaks even inside quoted arguments. Without the plugin,
+per-command permissions still apply, but they do not enforce this whole-call
+restriction. Commands that can alter Git state—including staging,
 committing, switching or creating branches, merging, rebasing, resetting,
 cleaning, fetching, pulling, pushing, remote changes, and configuration
 writes—are not auto-approved.

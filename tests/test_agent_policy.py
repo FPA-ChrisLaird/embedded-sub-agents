@@ -107,12 +107,13 @@ def permission(rules: list[dict], action: str, resource: str = "*") -> str:
     return effect
 
 
-def run_plugin(agents: dict) -> dict:
+def run_plugin(agents: dict, *options: str) -> dict:
     result = subprocess.run(
         [
             "node",
             str(REPOSITORY_ROOT / "scripts/evaluate_inspection_plugin.mjs"),
             str(INSPECTION_PLUGIN),
+            *options,
         ],
         input=json.dumps(agents),
         text=True,
@@ -385,10 +386,6 @@ class AgentPolicyTests(unittest.TestCase):
                 "git --no-pager diff --no-ext-diff --no-textconv --ext-diff",
                 "git --no-pager show --no-ext-diff --no-textconv --textconv",
                 "git --no-pager log --no-ext-diff --no-textconv --open-files-in-pager",
-                "gh repo view a/b && echo x",
-                "gh repo view a/b || echo x",
-                "gh repo view a/b; echo x",
-                "gh repo view a/b | echo x",
                 "make flash",
                 "make program",
                 "make package",
@@ -404,6 +401,11 @@ class AgentPolicyTests(unittest.TestCase):
                 self.assertEqual(
                     "deny", permission(rules, "shell", command), (name, command)
                 )
+
+    def test_shell_hook_checks_complete_input_for_all_four_roles(self) -> None:
+        run_plugin(
+            {name: {"permissions": []} for name in AGENT_MODELS}, "--check-shell-hook"
+        )
 
     def test_plugin_ignores_absent_agents_and_preserves_unrelated_policy(self) -> None:
         unrelated = {
@@ -435,7 +437,7 @@ class AgentPolicyTests(unittest.TestCase):
             with self.subTest(pattern=pattern):
                 self.assertIn(f'"{pattern}": "allow"', plugin_text)
 
-    def test_shared_plugin_denies_composition_and_unsafe_git_output(self) -> None:
+    def test_shared_plugin_retains_shell_resource_denials(self) -> None:
         plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
 
         for pattern in GIT_INSPECTION_DENIAL_PATTERNS:

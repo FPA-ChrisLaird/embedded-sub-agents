@@ -114,6 +114,8 @@ const GIT_INSPECTION_DENIALS: ShellPermissions = {
   "git * --open-files-in-pager*": "deny",
 }
 
+// Retain the resource-level denials as a fallback for matching resources;
+// the hook below handles separators between resources.
 const SHELL_COMPOSITION_DENIALS: ShellPermissions = {
   "*&&*": "deny",
   "*||*": "deny",
@@ -162,9 +164,33 @@ function shellRules(permissions: ShellPermissions): ShellRule[] {
   }))
 }
 
+// Permission rules see scanner-produced resources, not the original input.
+// Inspect the whole call separately. Reject separator characters even in
+// quoted arguments rather than implement a second, shell-specific parser.
+const SHELL_SEPARATORS = /[&|;\r\n]/
+
 export default Plugin.define({
   id: "embedded-repository-inspection",
   async setup(ctx) {
+    await ctx.tool.hook("execute.before", (event) => {
+      if (
+        event.tool !== "shell" ||
+        !TARGET_AGENTS.some((name) => name === event.agent)
+      ) {
+        return
+      }
+
+      const input = event.input as { command?: unknown } | null | undefined
+      if (typeof input?.command !== "string") {
+        throw new Error("A shell call must provide a command string.")
+      }
+      if (SHELL_SEPARATORS.test(input.command)) {
+        throw new Error(
+          "Shell composition is disabled. Run one command at a time without &, |, semicolons, or line breaks.",
+        )
+      }
+    })
+
     await ctx.agent.transform((editor) => {
       for (const agentName of TARGET_AGENTS) {
         // Disabled/absent agents must stay absent, including in global installs.
