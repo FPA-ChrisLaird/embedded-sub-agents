@@ -72,6 +72,13 @@ backups are not overwritten; subsequent backups use numbered suffixes. The
 installer never removes unrelated plugins or copies the repository's project
 defaults over your global configuration.
 
+OpenCode V2 disables task tracking by default. To enable `todowrite` for
+`embedded-engineer` outside this checkout, set `"todo": true` in the top-level
+`experimental` object of your global `opencode.json` or `opencode.jsonc`. Add
+the object if it is missing, or merge the flag into the existing object without
+replacing other settings. The installer does not set this flag. The three
+analysis agents still deny `todowrite`.
+
 If either global `opencode.json` or `opencode.jsonc` mentions the old `.ts`
 plugin, the installer stops before writing anything. Manually replace that
 entry with `./plugins/embedded-repository-inspection` under `plugins`, or remove
