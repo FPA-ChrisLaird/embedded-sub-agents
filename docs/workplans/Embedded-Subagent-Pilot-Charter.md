@@ -18,7 +18,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
   - `embedded-c-quality-reviewer` for correctness, concurrency, timing, integer safety, undefined behavior, and static-analysis evidence.
   - `embedded-build-analyzer` for Makefiles, scripts, toolchains, targets, configurations, artifacts, dependencies, and unsafe commands.
 - Configure product-agnostic prompts and permissions that apply across embedded repositories.
-- Use `subagent_depth: 1` so only the primary agent may delegate.
+- Use `experimental.subagent_depth: 1` so only the primary agent may delegate.
 - Limit automatic delegation to the three analysis subagents; any future implementation delegation requires approval.
 - Constrain each request to at most three non-overlapping subagent investigations.
 - Require every subagent hand-off to state scope, evidence, assumptions, risks, and a recommended next action.
@@ -29,7 +29,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 
 - Firmware, build-system, or hardware changes.
 - Subagent file edits or local shell command execution. Read-only GitHub CLI retrieval and exact non-mutating Git inspection are in scope.
-- Firmware flashing, unauthorized device access or destructive operations, and unrequested Git/GitHub mutations. The [primary agent](../../.opencode/agents/embedded-engineer.md) owns the approval boundaries and build-cleanup exception; the [Android skill](../../.opencode/skills/android-device-workflow/SKILL.md) owns the scoped Android workflow. The [plugin](../../.opencode/plugins/embedded-repository-inspection.ts) owns shared enforced shell rules. This scope summary does not grant additional permissions.
+- Firmware flashing, unauthorized device access or destructive operations, and unrequested Git/GitHub mutations. The [primary agent](../../.opencode/agents/embedded-engineer.md) owns the approval boundaries and build-cleanup exception; the [Android skill](../../.opencode/skills/android-device-workflow/SKILL.md) owns the scoped Android workflow. The [plugin](../../.opencode/plugins/embedded-repository-inspection/index.ts) owns shared enforced shell rules. This scope summary does not grant additional permissions.
 - Enabling Jira, Confluence, Xray, or other external retrieval integrations for subagents during the initial pilot. Read-only GitHub CLI retrieval is in scope.
 - Adding `embedded-c-implementer`, `embedded-test-designer`, `embedded-debugger`, `embedded-hardware-reviewer`, or embedded-specific skills before the pilot demonstrates a recurring need.
 - Replacing deterministic C/C++ formatters with an LLM.
@@ -39,35 +39,35 @@ Embedded firmware investigations commonly require broad repository exploration, 
 - Use the [policy ownership guide](../../README.md#policy-ownership): agent definitions own permanent role/safety boundaries, the plugin owns shared enforced shell rules, and skills own detailed workflows. This charter owns purpose and acceptance criteria, not duplicate command procedures.
 - Agent definitions are global OpenCode configuration so they are reusable rather than tied to a product or toolchain.
 - The secret-free agent definitions, shared repository-inspection plugin, and depth configuration are version-controlled in this repository as the canonical source, then installed into global OpenCode configuration for reuse across projects.
-- Read-only agents may use workspace read, glob, grep, and list operations, plus allow-listed read-only `gh` commands and exact non-mutating Git inspection commands applied by the shared plugin. They must deny edit, task, and all other shell permissions.
+- Read-only agents may use workspace read (including directories), glob, and grep operations, plus allow-listed read-only `gh` commands and exact non-mutating Git inspection commands from the shared policy's generated native rules. They must deny edit, subagent, and all other shell permissions.
 - Keep source formatting deterministic through project-selected tooling such as `clang-format` or `uncrustify`.
 
 ## Decisions
 
 - Role-specific step limits live in [agent frontmatter](../../.opencode/agents/) and are checked by policy tests; evaluate their effectiveness during the pilot.
-- The primary task permission denies by default, then allows only the three analysis roles. Rule order matters because the last matching rule wins.
+- The primary subagent permission denies by default, then allows only the three analysis roles. Rule order matters because the last matching rule wins.
 - The primary agent's prompt, rather than configuration, limits fan-out because OpenCode does not currently provide a fan-out limit.
-- `task` permissions restrict automatic model delegation only. Direct user `@` invocation remains possible, so every subagent must enforce its own safety permissions.
+- `subagent` permissions restrict automatic model delegation only. Direct user `@` invocation remains possible, so every subagent must enforce its own safety permissions.
 - The primary uses approval-gated shell access for a fair end-to-end comparison with Plan and Build. The shared plugin automatically allows only its read-only GitHub and Git inspection commands, hard-denies recognised hazardous command patterns, and requires approval for all other primary shell commands.
 
 ## Acceptance Criteria
 
-- Global OpenCode configuration loads successfully after restart.
+- Global OpenCode V2 configuration loads successfully after automatic reload or `/reload`.
 - `embedded-engineer` is a primary agent and can automatically delegate only to the three defined analysis subagents.
-- `subagent_depth` is `1`; every subagent has `permission.task: deny`.
+- `experimental.subagent_depth` is `1`; every subagent has a `permissions` rule denying `subagent`.
 - The three analysis subagents are read-only and cannot edit files, execute local shell commands, or create child subagents. They may use only allow-listed, read-only GitHub CLI and exact Git inspection commands.
 - Each analysis agent has the agreed responsibility, model recommendation, iteration limit, and hand-off contract.
 - Pilot outputs are concise, evidence-based, and let the primary engineer decide next steps without repeating broad exploration.
 - Quality-review hand-offs identify residual risks separately from findings and evidence gaps.
 - An exhausted subagent investigation is resumed or its remaining gap is resolved by the primary before the parent task is finalised.
 - For changes to persistent or externally encoded representations, the quality reviewer traces every writer and reports unproven ordering dependencies that can persist incompatible data.
-- Regression tests preserve operational safety boundaries in their owning [agent](../../.opencode/agents/embedded-engineer.md), [plugin](../../.opencode/plugins/embedded-repository-inspection.ts), and [skill](../../.opencode/skills/) sources. Analysis subagents remain barred from devices; optional Android and ERD workflow details are loaded only when relevant.
+- Regression tests preserve operational safety boundaries in their owning [agent](../../.opencode/agents/embedded-engineer.md), [plugin](../../.opencode/plugins/embedded-repository-inspection/index.ts), and [skill](../../.opencode/skills/) sources. Analysis subagents remain barred from devices; optional Android and ERD workflow details are loaded only when relevant.
 - The installer deploys managed skills before agents. The primary fails closed if the required Android skill is unavailable. Adding a skill does not expand permissions or add a device-execution subagent.
 
 ## Verification Plan
 
 - Validate the configuration against the OpenCode schema before saving.
-- Restart OpenCode and run `opencode agent list` to confirm the expected agent names, modes, and permissions.
+- Use automatic reload or `/reload`, then run `opencode api get /api/agent` and `opencode api get /api/plugin` to confirm the expected agents, modes, permissions, and active plugin.
 - Delegate one bounded architecture investigation, one quality review, and one Makefile investigation from `embedded-engineer`.
 - Confirm each subagent returns the required hand-off sections, can use the allow-listed read-only GitHub CLI and exact Git inspection commands, and cannot call other prohibited tools.
 - For a persistent-data change, confirm the quality reviewer owns writer, marker, persistence-ordering, and test-coverage review. Request architecture analysis only for a distinct cross-module ownership, reader, migration, recovery, or state-flow question.
@@ -75,7 +75,7 @@ Embedded firmware investigations commonly require broad repository exploration, 
 
 ## Rollback
 
-Remove the added global agent files and repository-inspection plugin, then remove the corresponding `plugin` and `subagent_depth` configuration entries before restarting OpenCode.
+Remove the added global agent files and repository-inspection plugin directory, then remove only their corresponding `plugins` and `experimental.subagent_depth` entries. Preserve unrelated configuration and reload. To return to V1 instead, restore the complete saved V1 configuration and plugin; native V2 files are not V1-compatible.
 
 ## Open Questions
 

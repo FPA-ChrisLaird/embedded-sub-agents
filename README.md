@@ -1,13 +1,13 @@
 # Embedded Subagents
 
-Product-agnostic OpenCode agent and subagent roles for embedded C/C++ software development. The roles are intended to be reusable across toolchains, RTOS and bare-metal systems, build systems, and hardware platforms.
+Product-agnostic OpenCode V2 agent and subagent roles for embedded C/C++ software development. The roles are intended to be reusable across toolchains, RTOS and bare-metal systems, build systems, and hardware platforms.
 
 ## Repository Configuration
 
 This repository is the version-controlled source of truth for the initial pilot. The executable configuration is in `.opencode/` and contains no secrets:
 
-- `.opencode/opencode.json` sets `subagent_depth` to `1` and loads the local plugin.
-- `.opencode/plugins/embedded-repository-inspection.ts` centrally applies the
+- `.opencode/opencode.json` sets `experimental.subagent_depth` to `1` and loads the local plugin.
+- `.opencode/plugins/embedded-repository-inspection/index.ts` centrally defines the
   read-only GitHub CLI and bounded, non-mutating Git inspection policy. GitHub
   API writes require a separate permission prompt for the primary agent and
   are denied to analysis subagents; the primary also requires an explicit
@@ -27,10 +27,13 @@ This repository is the version-controlled source of truth for the initial pilot.
 - [Agent definitions](.opencode/agents/) own role responsibilities, delegation,
   evidence standards, and permanent safety boundaries. The primary retains
   decisions and verification; the three analysis agents remain read-only.
-- The [inspection plugin](.opencode/plugins/embedded-repository-inspection.ts)
-  owns the shared enforced shell permission rules. Agent frontmatter owns each
-  role's other tool permissions; [project configuration](.opencode/opencode.json)
-  owns project defaults and nesting depth. A skill cannot override these rules.
+- The [inspection plugin](.opencode/plugins/embedded-repository-inspection/index.ts)
+  owns the shared shell policy. Its per-command rules are also generated into
+  agent frontmatter so they do not depend on plugin activation order. The
+  whole-command check requires the active plugin.
+  Agent frontmatter owns each role's other tool permissions;
+  [project configuration](.opencode/opencode.json) owns project defaults and
+  nesting depth. A skill cannot override these rules.
 - Each [on-demand skill](.opencode/skills/) owns its detailed workflow and
   safeguards. Load only relevant skills; do not copy their procedures into the
   permanent agent prompts or general documentation.
@@ -54,11 +57,81 @@ py -3 .\scripts\install_opencode_agents.py
 python3 ./scripts/install_opencode_agents.py
 ```
 
-The installer copies the four agent files, shared plugin, and on-demand `android-device-workflow` and `erd-knowledge` skills to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). Skills are installed before agents. It does not remove files or rewrite `opencode.json`, so it preserves credentials, providers, models, MCP servers, and unrelated configuration. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview the changes or `--config-dir PATH` to install to a non-standard or test location. A global `disable: true` override can intentionally keep the suite unavailable during an A/B comparison with built-in Plan and Build. Quit and restart OpenCode after any configuration change.
+The installer copies the four agent files, shared plugin, and on-demand `android-device-workflow` and `erd-knowledge` skills to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). Skills are installed before agents. It does not rewrite user configuration, so it preserves credentials, providers, models, MCP servers, and unrelated settings. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview changes or `--config-dir PATH` for a non-standard or test location. A global `agents.<id>.disabled: true` override can intentionally keep an agent unavailable during an A/B comparison with built-in Plan and Build. OpenCode V2 reloads watched configuration automatically; use `/reload` to force a reload.
+
+### Migrating an existing V1 installation
+
+These definitions use native V2 configuration and the V2 plugin API; do not
+point OpenCode V1 at the converted files. Keep a copy of your V1 setup until
+you have verified V2. See the [official migration guide](https://opencode.ai/docs/migrate-v1).
+
+Run the installer with `--dry-run` first. It installs the native plugin directory
+and renames the old managed `plugins/embedded-repository-inspection.ts` to a
+non-loaded `.ts.v1-backup` file, preserving any local customization. Existing
+backups are not overwritten; subsequent backups use numbered suffixes. The
+installer never removes unrelated plugins or copies the repository's project
+defaults over your global configuration.
+
+OpenCode V2 disables task tracking by default. To enable `todowrite` for
+`embedded-engineer` outside this checkout, set `"todo": true` in the top-level
+`experimental` object of your global `opencode.json` or `opencode.jsonc`. Add
+the object if it is missing, or merge the flag into the existing object without
+replacing other settings. The installer does not set this flag. The three
+analysis agents still deny `todowrite`.
+
+If either global `opencode.json` or `opencode.jsonc` mentions the old `.ts`
+plugin, the installer stops before writing anything. Manually replace that
+entry with `./plugins/embedded-repository-inspection` under `plugins`, or remove
+the entry to use automatic discovery, preserving all other settings. The check
+is conservative and includes commented references. Then rerun the installer.
+
+The installer also rejects a legacy plugin path that is a symlink, including
+a dangling one, before copying any files.
+Each file replacement is atomic, but the suite update is not a transaction;
+if interrupted, resolve the reported error and rerun before relying on the suite.
+
+Models, reasoning variants, step limits, roles, and the shell safety policy are
+preserved. Permissions now use ordered `permissions` rules with `shell` and
+`subagent` actions; MCP permissions match the exact tool name registered by
+OpenCode. V2 does not provide the former LSP diagnostics; use project
+lint/compiler checks.
+Skills remain in their existing V2-compatible layout and load on demand.
+
+For a server named `codebase-memory-mcp`, OpenCode v2.2.7 keeps the hyphens
+in permission actions such as `codebase-memory-mcp_search_graph`. Leave the
+server's `codemode` setting at its default: OpenCode lists the individually
+allowed tools directly for the specialists when their rules deny `execute`.
+Only the primary has an explicit indexing allowance. Rerun the installer if
+you use globally installed profiles outside this checkout.
+
+OpenCode V2 can apply file-based agents after user plugin transforms. Therefore
+the native frontmatter includes a generated copy of the shared per-command
+rules, including their default and final denials. Missing or early-loading
+plugins cannot silently remove those rules. After changing those rules in the
+plugin, run `python scripts/sync_agent_shell_policy.py --write` and inspect the
+generated agent diffs. The test suite checks exact policy equality and evaluates
+its ordered outcomes; do not hand-edit the marked generated blocks.
+
+Verify discovery with `opencode api get /api/agent` and
+`opencode api get /api/plugin` from the target project. Confirm all four agents
+and the active `embedded-repository-inspection` plugin, including its source
+path. If OpenCode loads the global copy first and reports a duplicate plugin
+ID for the project copy, rerun the installer to update the active global copy.
+Check delegation and approval behavior in a fresh session. Automated tests
+cover configuration and plugin behavior with SDK-shaped fixtures by default.
+To also test shell execution and specialist MCP tool discovery, set
+`OPENCODE_SMOKE_TEST=1` in your environment and run
+`python -m pytest tests/test_opencode_runtime_integration.py` with OpenCode V2
+on `PATH`. These opt-in tests use an isolated standalone runtime and local
+fixtures; they need no provider account or real MCP server.
+The repository migration was checked with OpenCode v2.2.7: all four native agent
+definitions and the local V2 plugin loaded, and the API returned the generated
+shell rules. Global-only installation and conversational behavior still need
+fresh-session verification after installation.
 
 ### Git inspection without prompts
 
-The shared plugin auto-approves individual, non-mutating Git inspection
+The shared policy's native rules auto-approve individual, non-mutating Git inspection
 commands, including status, safe diffs, shows and logs, reflog, branch and tag
 listing, revision and reference queries, read-only configuration queries,
 tracked-file and tree listing, blame, worktree listing, stash listing, and
@@ -68,9 +141,12 @@ submodule status. Use the plugin's canonical flags, such as
 does not take an optional index lock and diffs cannot invoke external helpers or
 repository-configured text-conversion filters.
 
-Inspection commands must be invoked individually: shell composition (`&&`,
-`||`, `;`, or `|`) remains denied so an approved read command cannot be combined
-with an unreviewed action. Commands that can alter Git state—including staging,
+Run inspection commands individually. OpenCode V2 checks permissions on each
+extracted command, so the active plugin also checks the complete shell input
+before execution for the four embedded agents. It conservatively rejects `&`,
+`|`, `;`, and line breaks even inside quoted arguments. Without the plugin,
+per-command permissions still apply, but they do not enforce this whole-call
+restriction. Commands that can alter Git state—including staging,
 committing, switching or creating branches, merging, rebasing, resetting,
 cleaning, fetching, pulling, pushing, remote changes, and configuration
 writes—are not auto-approved.
@@ -96,7 +172,7 @@ For fresh-session behavioral checks and current validation limits, use the
 
 ## Development
 
-The supported development and CI interpreter is Python 3.15; Python 3.13 is no longer a supported test target. The repository uses Invoke to provide repeatable Python checks. Create and activate a virtual environment, install Invoke, then let `inv setup` install the pinned development tools and the pre-commit hook:
+The supported development and CI interpreter is Python 3.15; Python 3.13 is no longer a supported test target. Node.js 24 is also required for the offline TypeScript plugin contract tests (called by pytest). The repository uses Invoke to provide repeatable Python checks. Create and activate a virtual environment, install Invoke, then let `inv setup` install the pinned development tools and the pre-commit hook:
 
 ```powershell
 py -3.15 -m venv .venv
@@ -170,7 +246,8 @@ Source formatting should remain deterministic tooling, such as `clang-format` or
 
 Safety and approval boundaries are defined in the
 [primary agent](.opencode/agents/embedded-engineer.md) and enforced where
-applicable by the [inspection plugin](.opencode/plugins/embedded-repository-inspection.ts).
+applicable by its native permissions generated from the
+[inspection plugin](.opencode/plugins/embedded-repository-inspection/index.ts).
 Firmware flashing remains prohibited; the primary owns approved build cleanup
 and the scoped Android exception. Analysis agents remain read-only and cannot
 access devices. See the owning files for exact rules, not this summary.
@@ -192,14 +269,14 @@ The primary agent may delegate focused, independent investigations. It should no
 For exact delegation rules, use these sources instead of a copied configuration:
 
 - [Project configuration](.opencode/opencode.json): nesting depth.
-- [Primary agent](.opencode/agents/embedded-engineer.md): task allow-list,
+- [Primary agent](.opencode/agents/embedded-engineer.md): subagent allow-list,
   focused delegation, fan-out, persistence-review routing, and incomplete hand-offs.
 - [Analysis agent definitions](.opencode/agents/): step limits, read-only tool
   permissions, and output contracts.
-- [Inspection plugin](.opencode/plugins/embedded-repository-inspection.ts):
+- [Inspection plugin](.opencode/plugins/embedded-repository-inspection/index.ts):
   shared shell rules.
 
-Direct user invocation is not constrained by the primary's task routing, so
+Direct user invocation is not constrained by the primary's subagent routing, so
 each agent's own permissions remain necessary. The primary owns reconciliation
 and final verification, not the specialist or the skill.
 
@@ -222,22 +299,22 @@ The currently available skills are primarily workflow, requirements, test-manage
 | `commit-message-style`       | `embedded-engineer`; `embedded-c-implementer`                                                                  | Validates commit subject and body conventions before committing.                                                                        | Use only when a commit is explicitly requested or permitted. Does not authorize committing by itself.                                                                |
 | `git-rebase-i`               | `embedded-engineer`                                                                                            | Provides a safe non-interactive procedure for restructuring local commits.                                                              | High-impact history rewrite. Do not delegate to an implementation subagent or use on shared/pushed commits without explicit approval.                                |
 | `markdown-table-formatting`  | `embedded-engineer`; `embedded-test-designer`; `embedded-build-analyzer`                                       | Produces aligned Markdown tables in specifications, plans, test matrices, build-target summaries, and reports.                          | Deterministic local formatting only. It does not format C/C++ source.                                                                                                |
-| `customize-opencode`         | `embedded-engineer`                                                                                            | Validates OpenCode agent, skill, command, plugin, model, and permission configuration before it is written.                             | Reserved for configuring this agent suite. Configuration changes require restarting OpenCode before they take effect.                                                |
+| `opencode`                   | `embedded-engineer`                                                                                            | Supplies current OpenCode V2 documentation for agent, skill, plugin, model, and permission configuration.                               | Load only for OpenCode work. Watched configuration reloads automatically; use `/reload` if needed.                                                                   |
 
 ## Recommended Delegation Boundaries
 
 Use the skills to supply context and process, while each specialist retains ownership of the technical judgment.
 
-| Agent / subagent                | Load by default      | Load when prompted by the work                                                                                  | Do not delegate                                                                                                |
-|---------------------------------|----------------------|-----------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| `embedded-engineer`             | `customize-opencode` | `create-spec`, `create-implementation-plan`, `use-jira`, `use-confluence`, `access-github`, Git workflow skills | Hardware conclusions without evidence from source, specifications, or a hardware reviewer                      |
-| `embedded-architecture-analyst` | None                 | `use-jira`, `use-confluence`, `create-spec`, `create-implementation-plan`, `access-github`                      | Editing architecture or creating plans/specifications                                                          |
-| `embedded-c-quality-reviewer`   | None                 | `pr-check`, `access-github`, `use-xray`                                                                         | Posting reviews, modifying suppressions, or resolving findings without evidence                                |
-| `embedded-test-designer`        | None                 | `use-xray`, `create-spec`, `markdown-table-formatting`                                                          | Editing tests, running tests, or marking Xray results as passed                                                |
-| `embedded-c-implementer`        | None                 | `create-branch`, `commit-message-style`, `auto-commit-workflow` only when explicitly requested                  | Flashing, programming, device I/O, destructive targets, rebasing shared history                                |
-| `embedded-build-analyzer`       | None                 | `create-implementation-plan`, `access-github`, `markdown-table-formatting`                                      | Running Make, clean, package, flash, or programming targets; reviewing or approving a whole pull request       |
-| `embedded-debugger`             | None                 | `use-jira`, `use-confluence`, `access-github`                                                                   | Running diagnostics against a device, changing configuration, or treating hypotheses as confirmed root causes  |
-| `embedded-hardware-reviewer`    | None                 | `use-jira`, `use-confluence`, `pr-check`                                                                        | Accessing or programming hardware, or approving a change without datasheet and schematic evidence where needed |
+| Agent / subagent                | Load by default | Load when prompted by the work                                                                                              | Do not delegate                                                                                                |
+|---------------------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| `embedded-engineer`             | None            | `opencode`, `create-spec`, `create-implementation-plan`, `use-jira`, `use-confluence`, `access-github`, Git workflow skills | Hardware conclusions without evidence from source, specifications, or a hardware reviewer                      |
+| `embedded-architecture-analyst` | None            | `use-jira`, `use-confluence`, `create-spec`, `create-implementation-plan`, `access-github`                                  | Editing architecture or creating plans/specifications                                                          |
+| `embedded-c-quality-reviewer`   | None            | `pr-check`, `access-github`, `use-xray`                                                                                     | Posting reviews, modifying suppressions, or resolving findings without evidence                                |
+| `embedded-test-designer`        | None            | `use-xray`, `create-spec`, `markdown-table-formatting`                                                                      | Editing tests, running tests, or marking Xray results as passed                                                |
+| `embedded-c-implementer`        | None            | `create-branch`, `commit-message-style`, `auto-commit-workflow` only when explicitly requested                              | Flashing, programming, device I/O, destructive targets, rebasing shared history                                |
+| `embedded-build-analyzer`       | None            | `create-implementation-plan`, `access-github`, `markdown-table-formatting`                                                  | Running Make, clean, package, flash, or programming targets; reviewing or approving a whole pull request       |
+| `embedded-debugger`             | None            | `use-jira`, `use-confluence`, `access-github`                                                                               | Running diagnostics against a device, changing configuration, or treating hypotheses as confirmed root causes  |
+| `embedded-hardware-reviewer`    | None            | `use-jira`, `use-confluence`, `pr-check`                                                                                    | Accessing or programming hardware, or approving a change without datasheet and schematic evidence where needed |
 
 ## Embedded Skills To Add
 

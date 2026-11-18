@@ -25,5 +25,10 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
 
+      - name: Set up Node for plugin contract tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - name: Run checks
         run: python -m invoke check
