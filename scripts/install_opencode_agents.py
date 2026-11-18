@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -36,10 +38,61 @@ MANAGED_FILES = (
         Path("agents") / "embedded-build-analyzer.md",
     ),
     (
-        Path(".opencode") / "plugins" / "embedded-repository-inspection.ts",
-        Path("plugins") / "embedded-repository-inspection.ts",
+        Path(".opencode/plugins/embedded-repository-inspection/index.ts"),
+        Path("plugins/embedded-repository-inspection/index.ts"),
     ),
 )
+LEGACY_PLUGIN = Path("plugins/embedded-repository-inspection.ts")
+
+
+def mentions_legacy_plugin(text: str) -> bool:
+    """Find raw mentions and decoded JSON strings, ignoring JSONC comment syntax."""
+    if LEGACY_PLUGIN.name in text:
+        return True
+    # Match complete strings OR comments, so quotes inside a comment cannot
+    # consume the beginning of a real configuration string. Do not rewrite or
+    # otherwise interpret user configuration. JSONC still uses JSON strings.
+    tokens = re.finditer(r'"(?:[^"\\]|\\.)*"|//[^\r\n]*|/\*[\s\S]*?\*/', text)
+    for token in tokens:
+        if not token.group().startswith('"'):
+            continue
+        try:
+            value = json.loads(token.group())
+        except json.JSONDecodeError:
+            continue
+        if LEGACY_PLUGIN.name in value:
+            return True
+    return False
+
+
+def preflight_upgrade(config_dir: Path) -> tuple[Path, Path] | None:
+    """Reject stale explicit references and plan a non-destructive V1 backup."""
+    # Do not rewrite user-owned JSONC or risk dropping unrelated settings.
+    # Conservatively include commented references in this manual migration check.
+    for name in ("opencode.json", "opencode.jsonc"):
+        config_path = config_dir / name
+        if config_path.is_file() and mentions_legacy_plugin(
+            config_path.read_text(encoding="utf-8-sig")
+        ):
+            raise ValueError(
+                f"Update the legacy plugin reference in {config_path} before "
+                "installing: use plugins with the directory "
+                "./plugins/embedded-repository-inspection (no .ts), or remove "
+                "the entry to use automatic discovery. Preserve other settings; "
+                "the installer does not rewrite user configuration."
+            )
+
+    legacy = config_dir / LEGACY_PLUGIN
+    if not legacy.exists():
+        return None
+    if legacy.is_symlink() or not legacy.is_file():
+        raise ValueError(f"Expected a regular legacy plugin file: {legacy}")
+    backup = legacy.with_suffix(".ts.v1-backup")
+    number = 1
+    while backup.exists() or backup.is_symlink():
+        backup = legacy.with_suffix(f".ts.v1-backup.{number}")
+        number += 1
+    return legacy, backup
 
 
 def default_config_dir() -> Path:
@@ -110,8 +163,10 @@ def install(
     repository_root: Path, config_dir: Path, dry_run: bool = False
 ) -> list[str]:
     """Install managed files and return their status messages."""
+    sources = managed_sources(repository_root)
+    legacy_backup = preflight_upgrade(config_dir)
     results: list[str] = []
-    for source_path, target_relative_path in managed_sources(repository_root):
+    for source_path, target_relative_path in sources:
         target_path = config_dir / target_relative_path
         if files_match(source_path, target_path):
             results.append(f"unchanged {target_path}")
@@ -121,6 +176,12 @@ def install(
         results.append(f"{action} {target_path}")
         if not dry_run:
             copy_atomically(source_path, target_path)
+
+    if legacy_backup is not None:
+        legacy, backup = legacy_backup
+        results.append(f"backup {legacy} -> {backup}")
+        if not dry_run:
+            legacy.rename(backup)
 
     return results
 
@@ -150,7 +211,7 @@ def main(argv: list[str] | None = None, script_path: Path | None = None) -> int:
 
     try:
         results = install(repository_root, config_dir, args.dry_run)
-    except (FileNotFoundError, OSError) as error:
+    except (OSError, ValueError) as error:
         print(f"Installation failed: {error}", file=sys.stderr)
         return 1
 
@@ -160,7 +221,7 @@ def main(argv: list[str] | None = None, script_path: Path | None = None) -> int:
     if args.dry_run:
         print("Dry run only; no files were changed.")
     else:
-        print("Restart OpenCode to load the installed agents, plugin, and skills.")
+        print("OpenCode reloads configuration automatically; use /reload if needed.")
     return 0
 
 

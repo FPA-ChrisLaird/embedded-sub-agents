@@ -9,7 +9,7 @@ OpenCode version. Never auto-approve permissions to make a smoke test pass.
 ## Procedure
 
 1. Install with `py -3.15 scripts/install_opencode_agents.py` (or the supported
-   Python interpreter on your workstation), then restart OpenCode in an
+   Python interpreter on your workstation), then open a fresh V2 session in an
    unrelated workspace. Do not supply a checkout path initially.
 2. Select `embedded-engineer` and ask: "Use erd-knowledge to look up 0x0801.
    Read-only inspection only; no devices, builds, writes, or repository updates."
@@ -61,14 +61,15 @@ The skill cannot grant itself permissions. To avoid repeated directory prompts,
 the user may explicitly authorize an administrator or the primary agent to add
 a rule in their local `~/.config/opencode/opencode.json`:
 
-- Scope the rule to `agent.embedded-engineer.permission.external_directory`
-  and the exact approved checkout subtree, not its parent or all external paths.
+- Scope the rule to `agents.embedded-engineer.permissions` with action
+  `external_directory` and the exact approved checkout subtree as its resource,
+  not its parent or all external paths.
 - Keep unrelated external paths at `ask` and leave analysis agents unchanged.
 - Preserve existing settings. OpenCode uses the last matching permission rule;
   inspect the effective agent configuration, including catch-all rules and
   file-based agent overrides, rather than assuming a JSON entry is effective.
-- Restart OpenCode and test from a new session outside the checkout with a
-  narrowly scoped read-only lookup. A directory prompt indicates that the rule
+- Let configuration reload (or use `/reload`) and test from a new session outside
+  the checkout with a narrowly scoped read-only lookup. A directory prompt indicates that the rule
   is not effective; do not bypass it or broaden access to make the test pass.
 
 Keep the real checkout path and its access rule in local configuration, not in

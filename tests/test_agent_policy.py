@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
+import subprocess
+import sys
 import unittest
 from pathlib import Path
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = REPOSITORY_ROOT / ".opencode" / "agents"
@@ -11,7 +16,7 @@ ANDROID_SKILL = (
     REPOSITORY_ROOT / ".opencode" / "skills" / "android-device-workflow" / "SKILL.md"
 )
 INSPECTION_PLUGIN = (
-    REPOSITORY_ROOT / ".opencode" / "plugins" / "embedded-repository-inspection.ts"
+    REPOSITORY_ROOT / ".opencode/plugins/embedded-repository-inspection/index.ts"
 )
 SUBAGENT_NAMES = (
     "embedded-architecture-analyst",
@@ -19,22 +24,22 @@ SUBAGENT_NAMES = (
     "embedded-build-analyzer",
 )
 READ_ONLY_CODEBASE_MEMORY_TOOLS = (
-    "codebase-memory-mcp_list_projects",
-    "codebase-memory-mcp_index_status",
-    "codebase-memory-mcp_search_graph",
-    "codebase-memory-mcp_trace_path",
-    "codebase-memory-mcp_get_code_snippet",
-    "codebase-memory-mcp_check_index_coverage",
-    "codebase-memory-mcp_query_graph",
-    "codebase-memory-mcp_get_architecture",
-    "codebase-memory-mcp_search_code",
-    "codebase-memory-mcp_get_graph_schema",
-    "codebase-memory-mcp_detect_changes",
+    "codebase_memory_mcp_list_projects",
+    "codebase_memory_mcp_index_status",
+    "codebase_memory_mcp_search_graph",
+    "codebase_memory_mcp_trace_path",
+    "codebase_memory_mcp_get_code_snippet",
+    "codebase_memory_mcp_check_index_coverage",
+    "codebase_memory_mcp_query_graph",
+    "codebase_memory_mcp_get_architecture",
+    "codebase_memory_mcp_search_code",
+    "codebase_memory_mcp_get_graph_schema",
+    "codebase_memory_mcp_detect_changes",
 )
-PRIMARY_LOCAL_INDEX_CODEBASE_MEMORY_TOOLS = ("codebase-memory-mcp_index_repository",)
+PRIMARY_LOCAL_INDEX_CODEBASE_MEMORY_TOOLS = ("codebase_memory_mcp_index_repository",)
 MUTATING_CODEBASE_MEMORY_TOOLS = (
-    "codebase-memory-mcp_delete_project",
-    "codebase-memory-mcp_manage_adr",
+    "codebase_memory_mcp_delete_project",
+    "codebase_memory_mcp_manage_adr",
 )
 AGENT_MODELS = {
     "embedded-engineer": "github-copilot/gpt-6.1-sol",
@@ -76,7 +81,96 @@ def normalized(text: str) -> str:
     return " ".join(text.split())
 
 
+def frontmatter(name: str) -> dict:
+    return yaml.safe_load(agent_text(name).split("---", 2)[1])
+
+
+def permission(rules: list[dict], action: str, resource: str = "*") -> str:
+    """Model the documented V2 whole-value *, ? matcher and last-match rule.
+
+    These fixtures use normalized paths. Shell's special trailing ' *' form
+    also matches the command with no arguments. This is not a shell scanner.
+    """
+
+    def matches(pattern: str, value: str) -> bool:
+        expression = re.escape(pattern).replace(r"\*", ".*").replace(r"\?", ".")
+        return re.fullmatch(expression, value, re.DOTALL) is not None
+
+    effect = "ask"
+    for rule in rules:
+        pattern = rule["resource"]
+        resource_match = matches(pattern, resource)
+        if action == "shell" and pattern.endswith(" *"):
+            resource_match |= matches(pattern[:-2], resource)
+        if matches(rule["action"], action) and resource_match:
+            effect = rule["effect"]
+    return effect
+
+
+def run_plugin(agents: dict) -> dict:
+    result = subprocess.run(
+        [
+            "node",
+            str(REPOSITORY_ROOT / "scripts/evaluate_inspection_plugin.mjs"),
+            str(INSPECTION_PLUGIN),
+        ],
+        input=json.dumps(agents),
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
+    )
+    return json.loads(result.stdout)
+
+
 class AgentPolicyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.transformed = run_plugin({name: frontmatter(name) for name in AGENT_MODELS})
+
+    def test_native_shell_rules_match_shared_policy_without_a_loaded_plugin(
+        self,
+    ) -> None:
+        generated = run_plugin({name: {"permissions": []} for name in AGENT_MODELS})
+        for name in AGENT_MODELS:
+            self.assertEqual(
+                generated[name]["permissions"],
+                [r for r in frontmatter(name)["permissions"] if r["action"] == "shell"],
+            )
+            native = frontmatter(name)["permissions"]
+            self.assertEqual("allow", permission(native, "shell", "gh repo view a/b"))
+            self.assertEqual("deny", permission(native, "shell", "make flash"))
+            self.assertEqual(
+                "ask" if name == "embedded-engineer" else "deny",
+                permission(native, "shell", "make all"),
+            )
+
+    def test_generated_shell_policy_is_current(self) -> None:
+        subprocess.run(
+            [
+                sys.executable,
+                str(REPOSITORY_ROOT / "scripts/sync_agent_shell_policy.py"),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=30,
+        )
+
+    def test_frontmatter_is_entirely_native_v2(self) -> None:
+        native_fields = {"description", "mode", "model", "steps", "permissions"}
+        for name in AGENT_MODELS:
+            with self.subTest(agent=name):
+                agent = frontmatter(name)
+                self.assertLessEqual(agent.keys(), native_fields)
+                self.assertIsInstance(agent["permissions"], list)
+                for rule in agent["permissions"]:
+                    self.assertEqual({"action", "resource", "effect"}, rule.keys())
+                    self.assertIn(rule["effect"], {"allow", "ask", "deny"})
+                    self.assertNotIn(
+                        rule["action"], {"bash", "task", "lsp", "doom_loop", "list"}
+                    )
+                    self.assertNotIn("codebase-memory-mcp", rule["action"])
+
     def test_pilot_has_exactly_the_primary_and_three_analysis_agents(self) -> None:
         self.assertEqual(
             {
@@ -89,9 +183,11 @@ class AgentPolicyTests(unittest.TestCase):
     def test_primary_can_delegate_only_to_declared_analysis_agents(self) -> None:
         primary_text = PRIMARY_AGENT.read_text(encoding="utf-8")
 
-        self.assertIn('"*": deny', primary_text)
+        rules = frontmatter("embedded-engineer")["permissions"]
         for name in SUBAGENT_NAMES:
-            self.assertIn(f'"{name}": allow', primary_text)
+            self.assertEqual("allow", permission(rules, "subagent", name))
+        self.assertEqual("deny", permission(rules, "subagent", "general"))
+        self.assertEqual("deny", permission(rules, "subagent", "unknown"))
         self.assertNotIn("embedded-c-implementer", primary_text)
 
     def test_primary_defaults_to_one_focused_subagent(self) -> None:
@@ -109,18 +205,30 @@ class AgentPolicyTests(unittest.TestCase):
         self.assertIn("at most three non-overlapping subagents", primary_text)
 
     def test_primary_allows_trusted_external_skill_directory_only(self) -> None:
-        primary_text = PRIMARY_AGENT.read_text(encoding="utf-8")
-
-        self.assertIn('"C:\\\\Users\\\\lairdc\\\\.agents\\\\**": allow', primary_text)
-        self.assertIn('"*": ask', primary_text)
+        rules = frontmatter("embedded-engineer")["permissions"]
+        self.assertEqual(
+            "allow",
+            permission(rules, "external_directory", "C:/Users/lairdc/.agents/*"),
+        )
+        self.assertEqual("ask", permission(rules, "external_directory", "D:/other/*"))
 
     def test_analysis_agents_are_read_only_and_cannot_delegate(self) -> None:
         for name in SUBAGENT_NAMES:
             with self.subTest(agent=name):
-                text = agent_text(name)
-                self.assertIn("mode: subagent", text)
-                self.assertIn("  edit: deny", text)
-                self.assertIn("  task: deny", text)
+                agent = frontmatter(name)
+                self.assertEqual("subagent", agent["mode"])
+                for action in ("edit", "subagent", "external_directory", "question"):
+                    self.assertEqual("deny", permission(agent["permissions"], action))
+
+    def test_reads_keep_secret_denials_after_general_allow(self) -> None:
+        for name in AGENT_MODELS:
+            rules = frontmatter(name)["permissions"]
+            self.assertEqual("allow", permission(rules, "read", "src/main.c"))
+            for path in (".env", "app.env.local", "a.pem", "a.key", "a.p12", "a.pfx"):
+                self.assertEqual("deny", permission(rules, "read", path), (name, path))
+        self.assertEqual(
+            "allow", permission(frontmatter("embedded-engineer")["permissions"], "edit")
+        )
 
     def test_analysis_agents_keep_the_configured_step_limits(self) -> None:
         expected_step_limits = {
@@ -145,23 +253,23 @@ class AgentPolicyTests(unittest.TestCase):
     ) -> None:
         for name in ("embedded-engineer", *SUBAGENT_NAMES):
             with self.subTest(agent=name):
-                text = agent_text(name)
+                rules = frontmatter(name)["permissions"]
                 for tool in READ_ONLY_CODEBASE_MEMORY_TOOLS:
-                    self.assertIn(f'"{tool}": allow', text)
+                    self.assertEqual("allow", permission(rules, tool))
                 for tool in PRIMARY_LOCAL_INDEX_CODEBASE_MEMORY_TOOLS:
-                    if name == "embedded-engineer":
-                        self.assertIn(f'"{tool}": allow', text)
-                    else:
-                        self.assertNotIn(f'"{tool}": allow', text)
+                    expected = "allow" if name == "embedded-engineer" else "deny"
+                    self.assertEqual(expected, permission(rules, tool))
                 for tool in MUTATING_CODEBASE_MEMORY_TOOLS:
-                    self.assertNotIn(f'"{tool}": allow', text)
-                self.assertNotIn('"codebase-memory-mcp_*": allow', text)
+                    self.assertNotEqual("allow", permission(rules, tool))
+                self.assertNotIn("codebase_memory_mcp_*", [r["action"] for r in rules])
 
     def test_agents_keep_role_specific_reasoning_variants(self) -> None:
         for name in AGENT_MODELS:
             with self.subTest(agent=name):
                 variant = "medium" if name == "embedded-build-analyzer" else "xhigh"
-                self.assertIn(f"variant: {variant}", agent_text(name).split("---")[1])
+                self.assertEqual(
+                    f"{AGENT_MODELS[name]}#{variant}", frontmatter(name)["model"]
+                )
 
     def test_project_defaults_to_sol_6_1_with_xhigh_reasoning(self) -> None:
         config = json.loads(
@@ -171,14 +279,22 @@ class AgentPolicyTests(unittest.TestCase):
         )
 
         self.assertEqual("github-copilot/gpt-6.1-sol", config["model"])
-        model = config["provider"]["github-copilot"]["models"]["gpt-6.1-sol"]
-        self.assertEqual("xhigh", model["options"]["reasoningEffort"])
+        model = config["providers"]["github-copilot"]["models"]["gpt-6.1-sol"]
+        self.assertEqual("xhigh", model["settings"]["reasoningEffort"])
+        self.assertNotIn("provider", config)
+        self.assertNotIn("plugin", config)
+        self.assertNotIn("subagent_depth", config)
+        self.assertEqual(
+            ["./plugins/embedded-repository-inspection"], config["plugins"]
+        )
 
     def test_pr_scoped_analysis_agents_can_load_pr_check(self) -> None:
         for name in SUBAGENT_NAMES:
             with self.subTest(agent=name):
-                text = agent_text(name)
-                self.assertIn('"pr-check": allow', text)
+                rules = frontmatter(name)["permissions"]
+                self.assertEqual("allow", permission(rules, "skill", "pr-check"))
+                self.assertEqual("allow", permission(rules, "skill", "access-github"))
+                self.assertEqual("deny", permission(rules, "skill", "other"))
 
     def test_all_agents_preserve_github_and_git_non_mutation_policy(self) -> None:
         for name in SUBAGENT_NAMES:
@@ -196,11 +312,109 @@ class AgentPolicyTests(unittest.TestCase):
     def test_shared_plugin_prompts_primary_for_api_writes_and_denies_subagents(
         self,
     ) -> None:
-        plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
+        flags = (
+            "-XPOST",
+            "-X POST",
+            "--method=POST",
+            "--method POST",
+            "-fbody=test",
+            "-f body=test",
+            "-Fbody=test",
+            "-F body=test",
+            "--raw-field=body=test",
+            "--raw-field body=test",
+            "--field=body=test",
+            "--field body=test",
+            "--input=body.json",
+            "--input body.json",
+        )
+        for name, agent in self.transformed.items():
+            expected = "ask" if name == "embedded-engineer" else "deny"
+            for flag in flags:
+                command = f"gh api repos/owner/repo/pulls/1/comments {flag}"
+                self.assertEqual(
+                    expected, permission(agent["permissions"], "shell", command)
+                )
+            for query_flag in ("-f", "-F", "--raw-field", "--field"):
+                prefix = f"gh api graphql --paginate {query_flag}"
+                for query, effect in (
+                    ("query='{ repository { name } }'", "allow"),
+                    ("query='mutation { addComment { id } }'", expected),
+                    ("query=@request.graphql", expected),
+                ):
+                    self.assertEqual(
+                        effect,
+                        permission(agent["permissions"], "shell", f"{prefix} {query}"),
+                    )
 
-        self.assertIn('agentName === "embedded-engineer" ? "ask" : "deny"', plugin_text)
-        self.assertIn("getApiMutationGuards(mutationAction)", plugin_text)
-        self.assertIn("getGraphqlMutationGuards(mutationAction)", plugin_text)
+    def test_plugin_effective_shell_policy_for_all_four_roles(self) -> None:
+        for name, agent in self.transformed.items():
+            rules = agent["permissions"]
+            default = "ask" if name == "embedded-engineer" else "deny"
+            for command in ("make all", "make clean", "adb devices", "git add file.c"):
+                self.assertEqual(
+                    default, permission(rules, "shell", command), (name, command)
+                )
+            for command in (
+                "gh repo view owner/repo",
+                "gh api repos/owner/repo/pulls/1",
+                "git --no-optional-locks --no-pager status --short --branch",
+                "git --no-pager diff --no-ext-diff --no-textconv",
+                "git --no-pager branch --list",
+                "git rev-parse HEAD",
+                "git ls-files",
+                "git worktree list",
+            ):
+                self.assertEqual(
+                    "allow", permission(rules, "shell", command), (name, command)
+                )
+            for command in (
+                "git --no-pager diff --no-ext-diff --no-textconv --output=result.patch",
+                "git --no-pager diff --no-ext-diff --no-textconv --ext-diff",
+                "git --no-pager show --no-ext-diff --no-textconv --textconv",
+                "git --no-pager log --no-ext-diff --no-textconv --open-files-in-pager",
+                "gh repo view a/b && echo x",
+                "gh repo view a/b || echo x",
+                "gh repo view a/b; echo x",
+                "gh repo view a/b | echo x",
+                "make flash",
+                "make program",
+                "make package",
+                "make release",
+                "openocd",
+                "jlink",
+                "pyocd",
+                "st-flash",
+                "dfu-util",
+                "avrdude",
+                "nrfjprog",
+            ):
+                self.assertEqual(
+                    "deny", permission(rules, "shell", command), (name, command)
+                )
+
+    def test_plugin_ignores_absent_agents_and_preserves_unrelated_policy(self) -> None:
+        unrelated = {
+            "permissions": [{"action": "*", "resource": "*", "effect": "deny"}]
+        }
+        self.assertEqual({"custom": unrelated}, run_plugin({"custom": unrelated}))
+        # A disabled agent is absent from the V2 agent editor, not recreated.
+        self.assertEqual({}, run_plugin({}))
+        custom = {
+            "permissions": [
+                {"action": "edit", "resource": "*", "effect": "deny"},
+                {"action": "shell", "resource": "echo approved", "effect": "allow"},
+            ]
+        }
+        result = run_plugin({"embedded-engineer": custom})["embedded-engineer"]
+        self.assertEqual(custom["permissions"], result["permissions"][:2])
+        self.assertEqual(
+            "allow", permission(result["permissions"], "shell", "echo approved")
+        )
+        self.assertEqual("deny", permission(result["permissions"], "edit"))
+        self.assertNotIn(
+            {"action": "shell", "resource": "*", "effect": "ask"}, result["permissions"]
+        )
 
     def test_shared_plugin_allows_bounded_git_inspection_commands(self) -> None:
         plugin_text = INSPECTION_PLUGIN.read_text(encoding="utf-8")
@@ -232,9 +446,9 @@ class AgentPolicyTests(unittest.TestCase):
         primary_text = normalized(agent_text("embedded-engineer"))
 
         self.assertNotIn('"* clean*": "deny"', plugin_text)
-        self.assertIn('"embedded-engineer": { "*": "ask" }', plugin_text)
+        self.assertIn('"embedded-engineer": "ask"', plugin_text)
         for name in SUBAGENT_NAMES:
-            self.assertIn(f'"{name}": {{ "*": "deny" }}', plugin_text)
+            self.assertIn(f'"{name}": "deny"', plugin_text)
         for pattern in ("*flash*", "*program*", "* package*", "* release*"):
             self.assertIn(f'"{pattern}": "deny"', plugin_text)
         self.assertIn(
@@ -310,9 +524,9 @@ class AgentPolicyTests(unittest.TestCase):
             "Never flash or program firmware, access a device", primary_text
         )
         self.assertNotIn('"adb *": "allow"', plugin_text)
-        self.assertIn('"embedded-engineer": { "*": "ask" }', plugin_text)
+        self.assertIn('"embedded-engineer": "ask"', plugin_text)
         for name in SUBAGENT_NAMES:
-            self.assertIn(f'"{name}": {{ "*": "deny" }}', plugin_text)
+            self.assertIn(f'"{name}": "deny"', plugin_text)
 
     def test_primary_reuses_bounded_adb_authorization_without_waiving_prompts(
         self,
@@ -349,7 +563,11 @@ class AgentPolicyTests(unittest.TestCase):
         )
 
         self.assertEqual("embedded-engineer", config["default_agent"])
-        self.assertEqual(1, config["subagent_depth"])
+        self.assertEqual(1, config["experimental"]["subagent_depth"])
+
+    def test_incomplete_subagents_resume_by_v2_session_id(self) -> None:
+        self.assertIn("`sessionID`", agent_text("embedded-engineer"))
+        self.assertNotIn("`task_id`", agent_text("embedded-engineer"))
 
 
 if __name__ == "__main__":

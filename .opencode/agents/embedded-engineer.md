@@ -1,47 +1,144 @@
 ---
 description: Coordinates embedded C/C++ investigations and safely integrates specialist findings. Use for multi-module firmware changes, safety-sensitive work, or when focused context isolation will improve the result.
 mode: primary
-model: github-copilot/gpt-6.1-sol
-variant: xhigh
-permission:
-  "*": ask
-  read:
-    "*": allow
-    "*.env": deny
-    "*.env.*": deny
-    "*.pem": deny
-    "*.key": deny
-    "*.p12": deny
-    "*.pfx": deny
-  glob: allow
-  grep: allow
-  list: allow
-  "codebase-memory-mcp_list_projects": allow
-  "codebase-memory-mcp_index_status": allow
-  "codebase-memory-mcp_search_graph": allow
-  "codebase-memory-mcp_trace_path": allow
-  "codebase-memory-mcp_get_code_snippet": allow
-  "codebase-memory-mcp_check_index_coverage": allow
-  "codebase-memory-mcp_query_graph": allow
-  "codebase-memory-mcp_get_architecture": allow
-  "codebase-memory-mcp_search_code": allow
-  "codebase-memory-mcp_get_graph_schema": allow
-  "codebase-memory-mcp_detect_changes": allow
-  "codebase-memory-mcp_index_repository": allow
-  edit: allow
-  task:
-    "*": deny
-    "embedded-architecture-analyst": allow
-    "embedded-c-quality-reviewer": allow
-    "embedded-build-analyzer": allow
-  skill: allow
-  lsp: allow
-  todowrite: allow
-  question: allow
-  doom_loop: ask
-  external_directory:
-    "C:\\Users\\lairdc\\.agents\\**": allow
-    "*": ask
+model: github-copilot/gpt-6.1-sol#xhigh
+permissions:
+  - { action: "*", resource: "*", effect: ask }
+  - { action: read, resource: "*", effect: allow }
+  - { action: read, resource: "*.env", effect: deny }
+  - { action: read, resource: "*.env.*", effect: deny }
+  - { action: read, resource: "*.pem", effect: deny }
+  - { action: read, resource: "*.key", effect: deny }
+  - { action: read, resource: "*.p12", effect: deny }
+  - { action: read, resource: "*.pfx", effect: deny }
+  - { action: glob, resource: "*", effect: allow }
+  - { action: grep, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_list_projects, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_index_status, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_search_graph, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_trace_path, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_get_code_snippet, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_check_index_coverage, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_query_graph, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_get_architecture, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_search_code, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_get_graph_schema, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_detect_changes, resource: "*", effect: allow }
+  - { action: codebase_memory_mcp_index_repository, resource: "*", effect: allow }
+  - { action: edit, resource: "*", effect: allow }
+  - { action: subagent, resource: "*", effect: deny }
+  - { action: subagent, resource: embedded-architecture-analyst, effect: allow }
+  - { action: subagent, resource: embedded-c-quality-reviewer, effect: allow }
+  - { action: subagent, resource: embedded-build-analyzer, effect: allow }
+  - { action: skill, resource: "*", effect: allow }
+  - { action: todowrite, resource: "*", effect: allow }
+  - { action: question, resource: "*", effect: allow }
+  - { action: external_directory, resource: "*", effect: ask }
+  - { action: external_directory, resource: "C:/Users/lairdc/.agents/*", effect: allow }
+  # BEGIN generated shell policy (scripts/sync_agent_shell_policy.py)
+  - { action: shell, resource: "*", effect: ask }
+  - { action: shell, resource: "gh auth status*", effect: allow }
+  - { action: shell, resource: "gh repo view*", effect: allow }
+  - { action: shell, resource: "gh pr view*", effect: allow }
+  - { action: shell, resource: "gh pr list*", effect: allow }
+  - { action: shell, resource: "gh pr status*", effect: allow }
+  - { action: shell, resource: "gh pr checks*", effect: allow }
+  - { action: shell, resource: "gh pr diff*", effect: allow }
+  - { action: shell, resource: "gh issue view*", effect: allow }
+  - { action: shell, resource: "gh issue list*", effect: allow }
+  - { action: shell, resource: "gh run view*", effect: allow }
+  - { action: shell, resource: "gh run list*", effect: allow }
+  - { action: shell, resource: "gh run watch*", effect: allow }
+  - { action: shell, resource: "gh workflow view*", effect: allow }
+  - { action: shell, resource: "gh workflow list*", effect: allow }
+  - { action: shell, resource: "gh api repos/*", effect: allow }
+  - { action: shell, resource: "gh api graphql *", effect: allow }
+  - { action: shell, resource: "git --no-optional-locks --no-pager status*", effect: allow }
+  - { action: shell, resource: "git --no-pager diff --no-ext-diff --no-textconv", effect: allow }
+  - { action: shell, resource: "git --no-pager diff --no-ext-diff --no-textconv *", effect: allow }
+  - { action: shell, resource: "git --no-pager show --no-ext-diff --no-textconv", effect: allow }
+  - { action: shell, resource: "git --no-pager show --no-ext-diff --no-textconv *", effect: allow }
+  - { action: shell, resource: "git --no-pager branch --show-current", effect: allow }
+  - { action: shell, resource: "git --no-pager branch", effect: allow }
+  - { action: shell, resource: "git --no-pager branch --list", effect: allow }
+  - { action: shell, resource: "git --no-pager branch --all", effect: allow }
+  - { action: shell, resource: "git --no-pager branch --remotes", effect: allow }
+  - { action: shell, resource: "git --no-pager branch -a", effect: allow }
+  - { action: shell, resource: "git --no-pager branch -r", effect: allow }
+  - { action: shell, resource: "git rev-parse *", effect: allow }
+  - { action: shell, resource: "git --no-pager log --no-ext-diff --no-textconv", effect: allow }
+  - { action: shell, resource: "git --no-pager log --no-ext-diff --no-textconv *", effect: allow }
+  - { action: shell, resource: "git --no-pager reflog", effect: allow }
+  - { action: shell, resource: "git --no-pager reflog show*", effect: allow }
+  - { action: shell, resource: "git merge-base *", effect: allow }
+  - { action: shell, resource: "git describe *", effect: allow }
+  - { action: shell, resource: "git name-rev *", effect: allow }
+  - { action: shell, resource: "git --no-pager tag", effect: allow }
+  - { action: shell, resource: "git --no-pager tag --list*", effect: allow }
+  - { action: shell, resource: "git worktree list*", effect: allow }
+  - { action: shell, resource: "git stash list*", effect: allow }
+  - { action: shell, resource: "git submodule status*", effect: allow }
+  - { action: shell, resource: "git sparse-checkout list", effect: allow }
+  - { action: shell, resource: "git remote", effect: allow }
+  - { action: shell, resource: "git remote -v", effect: allow }
+  - { action: shell, resource: "git remote get-url *", effect: allow }
+  - { action: shell, resource: "git config --get *", effect: allow }
+  - { action: shell, resource: "git config --get-all *", effect: allow }
+  - { action: shell, resource: "git config --get-regexp *", effect: allow }
+  - { action: shell, resource: "git config --list", effect: allow }
+  - { action: shell, resource: "git config --show-origin --list", effect: allow }
+  - { action: shell, resource: "git ls-files*", effect: allow }
+  - { action: shell, resource: "git ls-tree *", effect: allow }
+  - { action: shell, resource: "git cat-file -e *", effect: allow }
+  - { action: shell, resource: "git cat-file -t *", effect: allow }
+  - { action: shell, resource: "git cat-file -s *", effect: allow }
+  - { action: shell, resource: "git show-ref*", effect: allow }
+  - { action: shell, resource: "git for-each-ref*", effect: allow }
+  - { action: shell, resource: "git rev-list *", effect: allow }
+  - { action: shell, resource: "git check-ignore *", effect: allow }
+  - { action: shell, resource: "git check-attr *", effect: allow }
+  - { action: shell, resource: "git --no-pager blame *", effect: allow }
+  - { action: shell, resource: "git --no-pager shortlog*", effect: allow }
+  - { action: shell, resource: "gh api * -X*", effect: ask }
+  - { action: shell, resource: "gh api * -X *", effect: ask }
+  - { action: shell, resource: "gh api * --method=*", effect: ask }
+  - { action: shell, resource: "gh api * --method *", effect: ask }
+  - { action: shell, resource: "gh api * -f*", effect: ask }
+  - { action: shell, resource: "gh api * -f *", effect: ask }
+  - { action: shell, resource: "gh api * -F*", effect: ask }
+  - { action: shell, resource: "gh api * -F *", effect: ask }
+  - { action: shell, resource: "gh api * --raw-field=*", effect: ask }
+  - { action: shell, resource: "gh api * --raw-field *", effect: ask }
+  - { action: shell, resource: "gh api * --field=*", effect: ask }
+  - { action: shell, resource: "gh api * --field *", effect: ask }
+  - { action: shell, resource: "gh api * --input=*", effect: ask }
+  - { action: shell, resource: "gh api * --input *", effect: ask }
+  - { action: shell, resource: "gh api graphql * -f*", effect: allow }
+  - { action: shell, resource: "gh api graphql * -F*", effect: allow }
+  - { action: shell, resource: "gh api graphql * --raw-field*", effect: allow }
+  - { action: shell, resource: "gh api graphql * --field*", effect: allow }
+  - { action: shell, resource: "gh api graphql *@*", effect: ask }
+  - { action: shell, resource: "gh api graphql *mutation*", effect: ask }
+  - { action: shell, resource: "git * --output*", effect: deny }
+  - { action: shell, resource: "git * --ext-diff*", effect: deny }
+  - { action: shell, resource: "git * --textconv*", effect: deny }
+  - { action: shell, resource: "git * --open-files-in-pager*", effect: deny }
+  - { action: shell, resource: "*&&*", effect: deny }
+  - { action: shell, resource: "*||*", effect: deny }
+  - { action: shell, resource: "*;*", effect: deny }
+  - { action: shell, resource: "*|*", effect: deny }
+  - { action: shell, resource: "*flash*", effect: deny }
+  - { action: shell, resource: "*program*", effect: deny }
+  - { action: shell, resource: "*openocd*", effect: deny }
+  - { action: shell, resource: "*jlink*", effect: deny }
+  - { action: shell, resource: "*pyocd*", effect: deny }
+  - { action: shell, resource: "*st-flash*", effect: deny }
+  - { action: shell, resource: "*dfu-util*", effect: deny }
+  - { action: shell, resource: "*avrdude*", effect: deny }
+  - { action: shell, resource: "*nrfjprog*", effect: deny }
+  - { action: shell, resource: "* package*", effect: deny }
+  - { action: shell, resource: "* release*", effect: deny }
+  # END generated shell policy
 ---
 
 You are the primary embedded software engineer. Own the requirements,
@@ -88,7 +185,7 @@ a bug, assign severity, or block approval unless the user requests a risk-based
 review.
 
 If a subagent exhausts its step limit, its investigation is incomplete. Resume
-it with its `task_id` and a focused question, or resolve the gap yourself;
+it with its `sessionID` and a focused question, or resolve the gap yourself;
 never treat its summary as a completed review or silently discard its gaps.
 
 Never flash or program firmware, or run package or release targets. Device

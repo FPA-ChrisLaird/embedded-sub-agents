@@ -5,19 +5,32 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 ## Decisions
 
 - Use global OpenCode agent files so the roles are reusable across embedded product repositories.
-- Set `subagent_depth` to `1`: the primary agent may delegate, but no subagent may delegate further.
+- Set `experimental.subagent_depth` to `1`: the primary agent may delegate, but no subagent may delegate further.
 - Start with four roles: `embedded-engineer`, `embedded-architecture-analyst`, `embedded-c-quality-reviewer`, and `embedded-build-analyzer`.
 - Make analysis roles read-only. Add `embedded-c-implementer` only after the analysis pilot produces reliable, useful hand-offs.
-- Keep permanent safety and delegation boundaries in the [primary agent](.opencode/agents/embedded-engineer.md), shared enforced shell rules in the [plugin](.opencode/plugins/embedded-repository-inspection.ts), and detailed workflows in [on-demand skills](.opencode/skills/). Follow the [policy ownership guide](README.md#policy-ownership); this plan tracks rollout rather than duplicating operational rules. Keep analysis agents read-only and device execution primary-only.
+- Keep permanent safety and delegation boundaries in the [primary agent](.opencode/agents/embedded-engineer.md), shared enforced shell rules in the [plugin](.opencode/plugins/embedded-repository-inspection/index.ts), and detailed workflows in [on-demand skills](.opencode/skills/). Follow the [policy ownership guide](README.md#policy-ownership); this plan tracks rollout rather than duplicating operational rules. Keep analysis agents read-only and device execution primary-only.
 - Do not enable Jira, Confluence, or Xray retrieval for subagents during the initial pilot. Allow only read-only GitHub CLI retrieval plus exact non-mutating Git inspection commands for repository context, issues, pull-request status and diffs, Actions status and logs, and local repository state.
 - Maintain model, reasoning, and step settings in [agent frontmatter](.opencode/agents/) and defaults in [project configuration](.opencode/opencode.json); evaluate those settings during the pilot rather than duplicating their values here.
 - Do not create embedded-specific skills until repeated work demonstrates the organisational conventions they must encode.
 
 ## Tasks
 
+### V2 migration rollout
+
+- [x] Convert repository configuration, agents, and the shared plugin to native V2.
+- [x] Preserve shell enforcement in generated native agent rules independently of plugin startup order; check generation and ordered permission outcomes in tests.
+- [x] Check formatting, lint, installer-upgrade tests, and project-local agent/plugin discovery with OpenCode V2.
+- [x] Preview and install the migrated suite globally, resolve the explicit legacy plugin reference, and verify global-only discovery and effective permissions.
+- [ ] Verify interactive delegation and approval prompts in a fresh session.
+
+The completed setup tasks below record the initial pilot rollout, not a new
+global installation of the migrated V2 files.
+
+### Initial pilot and evaluation
+
 - [x] Create and version-control `embedded-engineer` in `.opencode/agents/`, then install it globally at `C:\Users\lairdc\.config\opencode\agents\`.
   - Configure it as an unlimited primary agent so it can reconcile and verify specialist findings.
-  - Allow only the three defined analysis agents through `permission.task`.
+  - Allow only the three defined analysis agents through `permissions` rules for `subagent`.
   - Do not delegate routine work by default. Use one focused subagent when it materially improves the result; use two or three only for explicitly independent, cross-cutting questions, with focused inputs and concise hand-offs.
   - Preserve final responsibility for requirements, decisions, integration, and verification.
 
@@ -25,21 +38,21 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
   - `embedded-architecture-analyst.md`: map execution contexts, dependencies, boundaries, configuration, and resource trade-offs.
   - `embedded-c-quality-reviewer.md`: review correctness, concurrency, timing, integer safety, undefined behavior, and static-analysis evidence.
   - `embedded-build-analyzer.md`: trace Makefiles, scripts, toolchains, targets, artefacts, and hazardous commands.
-  - Set `mode: subagent`, `permission.task: deny`, and `edit: deny` on each agent.
-  - Allow workspace read, glob, grep, and list operations. The shared repository-inspection plugin appends read-only `gh` and exact non-mutating Git inspection command allow-lists; it denies all other shell commands.
+  - Set `mode: subagent` and `permissions` rules denying `subagent` and `edit` on each agent.
+  - Allow workspace read (including directories), glob, and grep operations. Native permissions generated from the shared policy allow read-only `gh` and exact non-mutating Git inspection commands; they deny all other shell commands.
   - Verify step limits against the current agent frontmatter and policy tests.
   - Require every response to state scope, evidence, assumptions, risks, and recommended next action. Quality reviews must separately state residual risks.
 
 - [x] Add and version-control the delegation configuration in `.opencode/opencode.json`, then merge it into `C:\Users\lairdc\.config\opencode\opencode.json`.
-  - Set `subagent_depth` to `1`.
+  - Set `experimental.subagent_depth` to `1`.
   - Load the local shared repository-inspection plugin, then install its matching global file.
   - Centralize baseline shell policy, recognised firmware/build safety denials, GitHub CLI access, and exact non-mutating Git inspection rules in the plugin: unlisted primary shell commands and mutation-shaped API calls require approval; subagent commands beyond the allow-list are denied.
-  - Add an explicit task allow-list to the `embedded-engineer` agent definition with a catch-all deny rule first.
+  - Add an explicit subagent allow-list to the `embedded-engineer` agent definition with a catch-all deny rule first.
   - Keep all non-pilot agents unavailable to automatic delegation.
   - Preserve existing configuration and validate against the OpenCode schema before saving.
 
-- [ ] Restart the interactive OpenCode session and verify agent discovery.
-  - [x] A fresh, global-only `opencode agent list` process has confirmed agent discovery and the effective shared GitHub permission rules.
+- [ ] Reload the interactive OpenCode configuration and verify V2 agent discovery.
+  - [x] Recheck global-only discovery and effective permissions with `opencode api get /api/agent` and `opencode api get /api/plugin` after the V2 installation.
   - Confirm the primary agent and three analysis subagents are visible with the intended modes and permissions.
   - Confirm analysis subagents cannot edit, run local shell commands, or launch child agents; confirm they can run only the allow-listed read-only `gh` and Git inspection commands.
   - Confirm the primary agent can delegate only to the configured analysis roles.
@@ -72,15 +85,15 @@ This plan implements the product-agnostic embedded subagent pilot chartered in [
 
 ## Verification
 
-- The OpenCode configuration validates and loads after restart.
-- `subagent_depth` is `1` and every subagent has `permission.task: deny`.
-- The primary agent's task permission has a deny-by-default allow-list.
+- The native OpenCode V2 configuration validates and loads after automatic reload or `/reload`.
+- `experimental.subagent_depth` is `1` and every subagent has a `permissions` rule denying `subagent`.
+- The primary agent's subagent permission has a deny-by-default allow-list.
 - Read-only pilot agents can inspect the workspace, use allow-listed read-only GitHub CLI and exact Git inspection commands, but cannot edit files, execute local shell commands, or create nested subagents.
 - Pilot reports are concise, evidence-based, and useful to the primary engineer without requiring repeated repository exploration.
 - Quality-review hand-offs identify residual risks separately from findings and evidence gaps.
 - The primary resumes an exhausted subagent or resolves its remaining review gap before finalising.
 - Versioned persistent-data reviews trace every writer and identify unproven event ordering that can persist incompatible data.
-- Policy tests preserve the boundaries in the [primary agent](.opencode/agents/embedded-engineer.md), [plugin](.opencode/plugins/embedded-repository-inspection.ts), and [skills](.opencode/skills/), including fail-closed Android skill loading and read-only subagents. Workflow knowledge stays on demand; documentation links point to the owning sources.
+- Policy tests preserve the boundaries in the [primary agent](.opencode/agents/embedded-engineer.md), [plugin](.opencode/plugins/embedded-repository-inspection/index.ts), and [skills](.opencode/skills/), including fail-closed Android skill loading and read-only subagents. Workflow knowledge stays on demand; documentation links point to the owning sources.
 
 ## Out Of Scope
 
