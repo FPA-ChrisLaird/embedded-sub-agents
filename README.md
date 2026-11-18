@@ -112,11 +112,37 @@ plugin, run `python scripts/sync_agent_shell_policy.py --write` and inspect the
 generated agent diffs. The test suite checks exact policy equality and evaluates
 its ordered outcomes; do not hand-edit the marked generated blocks.
 
-Verify discovery with `opencode api get /api/agent` and
-`opencode api get /api/plugin` from the target project. Confirm all four agents
-and the active `embedded-repository-inspection` plugin, including its source
-path. If OpenCode loads the global copy first and reports a duplicate plugin
-ID for the project copy, rerun the installer to update the active global copy.
+Confirm all four agents are available in the target project. In an OpenCode
+session opened there, run `/plugins` and check that
+`embedded-repository-inspection` is active. Check its source path to see which
+copy OpenCode loaded.
+
+If you install globally and also work in this checkout, OpenCode V2 may report
+`Duplicate plugin ID: embedded-repository-inspection`. If the global copy is
+active, you can optionally skip the checkout copy with a
+[path-specific `plugin.use` policy](https://opencode.ai/docs/policies#mcp-servers-skills-and-plugins).
+Add this entry to `policies` in your global `opencode.json(c)`, preserving any
+existing entries:
+
+```json
+{
+  "action": "plugin.use",
+  "resource": "/absolute/path/to/embedded-sub-agents/.opencode/plugins/embedded-repository-inspection",
+  "effect": "deny"
+}
+```
+
+Replace the example with the absolute path to the checkout's plugin directory
+(escape Windows backslashes as `\\` in JSON). Match the directory, not the
+plugin ID, so the global copy stays enabled. Run `/plugins` in the checkout
+again and confirm only the global copy is listed and active. If you uninstall
+the global copy, remove the rule so the checkout can load its own copy again.
+
+With that rule in place, editing the plugin source in the checkout does not
+change the running global copy. Use the isolated smoke tests below to try
+plugin changes, then rerun the installer when you want those changes to take
+effect globally. Reinstalling by itself does not resolve a duplicate ID.
+
 Check delegation and approval behavior in a fresh session. Automated tests
 cover configuration and plugin behavior with SDK-shaped fixtures by default.
 To also test shell execution and specialist MCP tool discovery, set
