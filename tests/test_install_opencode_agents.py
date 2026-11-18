@@ -164,6 +164,44 @@ class InstallOpenCodeAgentsTests(unittest.TestCase):
                 self.assertEqual([config], list(config_dir.iterdir()))
                 self.assertEqual(before, config.read_bytes())
 
+    def test_dangling_legacy_symlink_fails_before_copies_or_backup(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_dir = Path(directory)
+            config = config_dir / "opencode.json"
+            original_config = b'{"experimental": {"todo": true}}\n'
+            config.write_bytes(original_config)
+            legacy = config_dir / INSTALLER.LEGACY_PLUGIN
+            legacy.parent.mkdir()
+            real_is_symlink = Path.is_symlink
+
+            # Simulate the missing target without requiring symlink privileges.
+            def is_symlink(path: Path) -> bool:
+                return path == legacy or real_is_symlink(path)
+
+            with contextlib.ExitStack() as stack:
+                stack.enter_context(
+                    mock.patch.object(
+                        Path, "is_symlink", autospec=True, side_effect=is_symlink
+                    )
+                )
+                copy = stack.enter_context(
+                    mock.patch.object(INSTALLER, "copy_atomically")
+                )
+                rename = stack.enter_context(mock.patch.object(Path, "rename"))
+                for dry_run in (False, True):
+                    with self.subTest(dry_run=dry_run):
+                        with self.assertRaisesRegex(
+                            ValueError, "Expected a regular legacy plugin file"
+                        ):
+                            INSTALLER.install(
+                                REPOSITORY_ROOT, config_dir, dry_run=dry_run
+                            )
+                        copy.assert_not_called()
+                        rename.assert_not_called()
+
+            self.assertEqual({config, legacy.parent}, set(config_dir.rglob("*")))
+            self.assertEqual(original_config, config.read_bytes())
+
     def test_v1_upgrade_dry_run_changes_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config_dir = Path(directory)

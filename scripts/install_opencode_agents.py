@@ -83,9 +83,10 @@ def preflight_upgrade(config_dir: Path) -> tuple[Path, Path] | None:
             )
 
     legacy = config_dir / LEGACY_PLUGIN
-    if not legacy.exists():
+    is_symlink = legacy.is_symlink()
+    if not is_symlink and not legacy.exists():
         return None
-    if legacy.is_symlink() or not legacy.is_file():
+    if is_symlink or not legacy.is_file():
         raise ValueError(f"Expected a regular legacy plugin file: {legacy}")
     backup = legacy.with_suffix(".ts.v1-backup")
     number = 1

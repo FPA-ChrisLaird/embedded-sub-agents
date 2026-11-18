@@ -77,6 +77,9 @@ plugin, the installer stops before writing anything. Manually replace that
 entry with `./plugins/embedded-repository-inspection` under `plugins`, or remove
 the entry to use automatic discovery, preserving all other settings. The check
 is conservative and includes commented references. Then rerun the installer.
+
+The installer also rejects a legacy plugin path that is a symlink, including
+a dangling one, before copying any files.
 Each file replacement is atomic, but the suite update is not a transaction;
 if interrupted, resolve the reported error and rerun before relying on the suite.
 
