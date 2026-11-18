@@ -24,22 +24,22 @@ SUBAGENT_NAMES = (
     "embedded-build-analyzer",
 )
 READ_ONLY_CODEBASE_MEMORY_TOOLS = (
-    "codebase_memory_mcp_list_projects",
-    "codebase_memory_mcp_index_status",
-    "codebase_memory_mcp_search_graph",
-    "codebase_memory_mcp_trace_path",
-    "codebase_memory_mcp_get_code_snippet",
-    "codebase_memory_mcp_check_index_coverage",
-    "codebase_memory_mcp_query_graph",
-    "codebase_memory_mcp_get_architecture",
-    "codebase_memory_mcp_search_code",
-    "codebase_memory_mcp_get_graph_schema",
-    "codebase_memory_mcp_detect_changes",
+    "codebase-memory-mcp_list_projects",
+    "codebase-memory-mcp_index_status",
+    "codebase-memory-mcp_search_graph",
+    "codebase-memory-mcp_trace_path",
+    "codebase-memory-mcp_get_code_snippet",
+    "codebase-memory-mcp_check_index_coverage",
+    "codebase-memory-mcp_query_graph",
+    "codebase-memory-mcp_get_architecture",
+    "codebase-memory-mcp_search_code",
+    "codebase-memory-mcp_get_graph_schema",
+    "codebase-memory-mcp_detect_changes",
 )
-PRIMARY_LOCAL_INDEX_CODEBASE_MEMORY_TOOLS = ("codebase_memory_mcp_index_repository",)
+PRIMARY_LOCAL_INDEX_CODEBASE_MEMORY_TOOLS = ("codebase-memory-mcp_index_repository",)
 MUTATING_CODEBASE_MEMORY_TOOLS = (
-    "codebase_memory_mcp_delete_project",
-    "codebase_memory_mcp_manage_adr",
+    "codebase-memory-mcp_delete_project",
+    "codebase-memory-mcp_manage_adr",
 )
 AGENT_MODELS = {
     "embedded-engineer": "github-copilot/gpt-6.2-sol",
@@ -182,7 +182,7 @@ class AgentPolicyTests(unittest.TestCase):
                     self.assertNotIn(
                         rule["action"], {"bash", "task", "lsp", "doom_loop", "list"}
                     )
-                    self.assertNotIn("codebase-memory-mcp", rule["action"])
+                    self.assertFalse(rule["action"].startswith("codebase_memory_mcp_"))
 
     def test_pilot_has_exactly_the_primary_and_three_analysis_agents(self) -> None:
         self.assertEqual(
@@ -274,7 +274,7 @@ class AgentPolicyTests(unittest.TestCase):
                     self.assertEqual(expected, permission(rules, tool))
                 for tool in MUTATING_CODEBASE_MEMORY_TOOLS:
                     self.assertNotEqual("allow", permission(rules, tool))
-                self.assertNotIn("codebase_memory_mcp_*", [r["action"] for r in rules])
+                self.assertNotIn("codebase-memory-mcp_*", [r["action"] for r in rules])
 
     def test_agents_keep_role_specific_reasoning_variants(self) -> None:
         for name in AGENT_MODELS:

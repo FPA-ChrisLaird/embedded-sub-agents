@@ -92,9 +92,17 @@ if interrupted, resolve the reported error and rerun before relying on the suite
 
 Models, reasoning variants, step limits, roles, and the shell safety policy are
 preserved. Permissions now use ordered `permissions` rules with `shell` and
-`subagent` actions; MCP permission actions use normalized underscores. V2 does
-not provide the former LSP diagnostics; use project lint/compiler checks.
+`subagent` actions; MCP permissions match the exact tool name registered by
+OpenCode. V2 does not provide the former LSP diagnostics; use project
+lint/compiler checks.
 Skills remain in their existing V2-compatible layout and load on demand.
+
+For a server named `codebase-memory-mcp`, OpenCode v2.2.7 keeps the hyphens
+in permission actions such as `codebase-memory-mcp_search_graph`. Leave the
+server's `codemode` setting at its default: OpenCode lists the individually
+allowed tools directly for the specialists when their rules deny `execute`.
+Only the primary has an explicit indexing allowance. Rerun the installer if
+you use globally installed profiles outside this checkout.
 
 OpenCode V2 can apply file-based agents after user plugin transforms. Therefore
 the native frontmatter includes a generated copy of the shared per-command
@@ -111,10 +119,11 @@ path. If OpenCode loads the global copy first and reports a duplicate plugin
 ID for the project copy, rerun the installer to update the active global copy.
 Check delegation and approval behavior in a fresh session. Automated tests
 cover configuration and plugin behavior with SDK-shaped fixtures by default.
-To also exercise the real shell tool, set `OPENCODE_SMOKE_TEST=1` in your
-environment and run `python -m pytest tests/test_opencode_shell_guard_integration.py`
-with OpenCode V2 on `PATH`. This opt-in test uses an isolated standalone runtime
-with a loopback model fixture; it needs no provider account.
+To also test shell execution and specialist MCP tool discovery, set
+`OPENCODE_SMOKE_TEST=1` in your environment and run
+`python -m pytest tests/test_opencode_runtime_integration.py` with OpenCode V2
+on `PATH`. These opt-in tests use an isolated standalone runtime and local
+fixtures; they need no provider account or real MCP server.
 The repository migration was checked with OpenCode v2.2.7: all four native agent
 definitions and the local V2 plugin loaded, and the API returned the generated
 shell rules. Global-only installation and conversational behavior still need

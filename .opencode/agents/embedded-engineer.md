@@ -13,18 +13,18 @@ permissions:
   - { action: read, resource: "*.pfx", effect: deny }
   - { action: glob, resource: "*", effect: allow }
   - { action: grep, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_list_projects, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_index_status, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_search_graph, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_trace_path, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_get_code_snippet, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_check_index_coverage, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_query_graph, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_get_architecture, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_search_code, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_get_graph_schema, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_detect_changes, resource: "*", effect: allow }
-  - { action: codebase_memory_mcp_index_repository, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_list_projects, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_index_status, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_search_graph, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_trace_path, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_get_code_snippet, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_check_index_coverage, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_query_graph, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_get_architecture, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_search_code, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_get_graph_schema, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_detect_changes, resource: "*", effect: allow }
+  - { action: codebase-memory-mcp_index_repository, resource: "*", effect: allow }
   - { action: edit, resource: "*", effect: allow }
   - { action: subagent, resource: "*", effect: deny }
   - { action: subagent, resource: embedded-architecture-analyst, effect: allow }
