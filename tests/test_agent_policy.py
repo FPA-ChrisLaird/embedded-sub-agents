@@ -42,7 +42,7 @@ MUTATING_CODEBASE_MEMORY_TOOLS = (
     "codebase_memory_mcp_manage_adr",
 )
 AGENT_MODELS = {
-    "embedded-engineer": "github-copilot/gpt-6.1-sol",
+    "embedded-engineer": "github-copilot/gpt-6.2-sol",
     "embedded-architecture-analyst": "github-copilot/gpt-6.1-sol",
     "embedded-c-quality-reviewer": "github-copilot/gpt-6.1-sol",
     "embedded-build-analyzer": "github-copilot/gpt-6-luna",
@@ -283,15 +283,15 @@ class AgentPolicyTests(unittest.TestCase):
                     f"{AGENT_MODELS[name]}#{variant}", frontmatter(name)["model"]
                 )
 
-    def test_project_defaults_to_sol_6_1_with_xhigh_reasoning(self) -> None:
+    def test_project_defaults_to_sol_6_2_with_xhigh_reasoning(self) -> None:
         config = json.loads(
             (REPOSITORY_ROOT / ".opencode" / "opencode.json").read_text(
                 encoding="utf-8"
             )
         )
 
-        self.assertEqual("github-copilot/gpt-6.1-sol", config["model"])
-        model = config["providers"]["github-copilot"]["models"]["gpt-6.1-sol"]
+        self.assertEqual("github-copilot/gpt-6.2-sol", config["model"])
+        model = config["providers"]["github-copilot"]["models"]["gpt-6.2-sol"]
         self.assertEqual("xhigh", model["settings"]["reasoningEffort"])
         self.assertNotIn("provider", config)
         self.assertNotIn("plugin", config)
