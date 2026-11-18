@@ -14,7 +14,8 @@
   },
   "default_agent": "embedded-engineer",
   "experimental": {
-    "subagent_depth": 1
+    "subagent_depth": 1,
+    "todo": true
   },
   "plugins": [
     "./plugins/embedded-repository-inspection"

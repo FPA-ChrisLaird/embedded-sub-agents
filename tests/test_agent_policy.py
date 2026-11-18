@@ -128,6 +128,18 @@ class AgentPolicyTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.transformed = run_plugin({name: frontmatter(name) for name in AGENT_MODELS})
 
+    def test_todo_is_enabled_and_analysis_agents_remain_denied(self) -> None:
+        config = json.loads(
+            (REPOSITORY_ROOT / ".opencode/opencode.json").read_text(encoding="utf-8")
+        )
+        self.assertIs(True, config["experimental"]["todo"])
+        for name in AGENT_MODELS:
+            with self.subTest(agent=name):
+                expected = "allow" if name == "embedded-engineer" else "deny"
+                self.assertEqual(
+                    expected, permission(frontmatter(name)["permissions"], "todowrite")
+                )
+
     def test_native_shell_rules_match_shared_policy_without_a_loaded_plugin(
         self,
     ) -> None:
