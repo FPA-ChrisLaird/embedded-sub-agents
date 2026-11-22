@@ -1,7 +1,7 @@
 ---
 description: Performs evidence-based embedded C/C++ quality reviews for correctness, concurrency, timing, and static-analysis concerns. Use to independently review a bounded change or suspected firmware defect.
 mode: subagent
-model: github-copilot/gpt-6.1-sol#xhigh
+model: fpa-gateway/gpt-6.2-sol
 steps: 60
 permissions:
   - { action: "*", resource: "*", effect: deny }

@@ -1,7 +1,7 @@
 ---
 description: Maps unfamiliar embedded C/C++ architecture, execution contexts, interfaces, and resource trade-offs. Use before multi-module changes or when isolating broad firmware discovery work.
 mode: subagent
-model: github-copilot/gpt-6.1-sol#xhigh
+model: fpa-gateway/gpt-6.2-sol
 steps: 20
 permissions:
   - { action: "*", resource: "*", effect: deny }

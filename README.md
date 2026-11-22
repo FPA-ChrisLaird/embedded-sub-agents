@@ -47,7 +47,35 @@ then adjust links or scope summaries where needed. Keep the four-agent pilot
 until recurring work demonstrates a need for a separate context boundary;
 adding a skill does not add a device-execution agent.
 
-OpenCode automatically loads this configuration when started in this repository. See [project configuration](.opencode/opencode.json) for the default agent/model and [agent frontmatter](.opencode/agents/) for role-specific models, reasoning variants, and step limits. These defaults are repository-scoped and do not rewrite global model preferences. To install the agent suite globally, run the cross-platform Python 3 installer from the repository root:
+OpenCode automatically loads the [project configuration](.opencode/opencode.json)
+when started in this repository. It selects `embedded-engineer` as the default
+agent but leaves the model to your OpenCode settings. Set `model` in your global
+`opencode.json(c)` for new sessions, or use `/models` to switch an existing
+session. The [specialist agents](.opencode/agents/) use the F&P AI Gateway
+(`fpa-gateway`): GPT 6.2 Sol for architecture and C quality review, and GPT 6 Luna
+for build analysis. The gateway must be available in the project to delegate to
+them. Leave GPT 6 Luna on the gateway default: the gateway accepted requests
+with both valid and invalid effort values, so support for an override is
+unverified. To use the tested `xhigh` effort for GPT 6.2 Sol, merge the following
+into your global `opencode.json(c)`. This applies to all agents using that model,
+without requiring a `#variant` selector:
+
+```json
+{
+  "providers": {
+    "fpa-gateway": {
+      "models": {
+        "gpt-6.2-sol": {
+          "body": { "reasoning": { "effort": "xhigh" } }
+        }
+      }
+    }
+  }
+}
+```
+
+To install the agent suite globally, run the cross-platform Python 3 installer
+from the repository root:
 
 ```powershell
 py -3 .\scripts\install_opencode_agents.py
@@ -90,9 +118,9 @@ a dangling one, before copying any files.
 Each file replacement is atomic, but the suite update is not a transaction;
 if interrupted, resolve the reported error and rerun before relying on the suite.
 
-Models, reasoning variants, step limits, roles, and the shell safety policy are
-preserved. Permissions now use ordered `permissions` rules with `shell` and
-`subagent` actions; MCP permissions match the exact tool name registered by
+Step limits, roles, and the shell safety policy are preserved. Permissions now
+use ordered `permissions` rules with `shell` and `subagent` actions; MCP
+permissions match the exact tool name registered by
 OpenCode. V2 does not provide the former LSP diagnostics; use project
 lint/compiler checks.
 Skills remain in their existing V2-compatible layout and load on demand.
