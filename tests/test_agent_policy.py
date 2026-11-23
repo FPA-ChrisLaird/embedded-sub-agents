@@ -23,6 +23,7 @@ SUBAGENT_NAMES = (
     "embedded-c-quality-reviewer",
     "embedded-build-analyzer",
 )
+AGENT_NAMES = ("embedded-engineer", *SUBAGENT_NAMES)
 READ_ONLY_CODEBASE_MEMORY_TOOLS = (
     "codebase-memory-mcp_list_projects",
     "codebase-memory-mcp_index_status",
@@ -41,12 +42,6 @@ MUTATING_CODEBASE_MEMORY_TOOLS = (
     "codebase-memory-mcp_delete_project",
     "codebase-memory-mcp_manage_adr",
 )
-AGENT_MODELS = {
-    "embedded-engineer": "github-copilot/gpt-6.2-sol",
-    "embedded-architecture-analyst": "github-copilot/gpt-6.1-sol",
-    "embedded-c-quality-reviewer": "github-copilot/gpt-6.1-sol",
-    "embedded-build-analyzer": "github-copilot/gpt-6-luna",
-}
 GIT_INSPECTION_PERMISSION_PATTERNS = (
     "git --no-optional-locks --no-pager status*",
     "git --no-pager diff --no-ext-diff --no-textconv *",
@@ -127,14 +122,14 @@ def run_plugin(agents: dict, *options: str) -> dict:
 class AgentPolicyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.transformed = run_plugin({name: frontmatter(name) for name in AGENT_MODELS})
+        cls.transformed = run_plugin({name: frontmatter(name) for name in AGENT_NAMES})
 
     def test_todo_is_enabled_and_analysis_agents_remain_denied(self) -> None:
         config = json.loads(
             (REPOSITORY_ROOT / ".opencode/opencode.json").read_text(encoding="utf-8")
         )
         self.assertIs(True, config["experimental"]["todo"])
-        for name in AGENT_MODELS:
+        for name in AGENT_NAMES:
             with self.subTest(agent=name):
                 expected = "allow" if name == "embedded-engineer" else "deny"
                 self.assertEqual(
@@ -144,8 +139,8 @@ class AgentPolicyTests(unittest.TestCase):
     def test_native_shell_rules_match_shared_policy_without_a_loaded_plugin(
         self,
     ) -> None:
-        generated = run_plugin({name: {"permissions": []} for name in AGENT_MODELS})
-        for name in AGENT_MODELS:
+        generated = run_plugin({name: {"permissions": []} for name in AGENT_NAMES})
+        for name in AGENT_NAMES:
             self.assertEqual(
                 generated[name]["permissions"],
                 [r for r in frontmatter(name)["permissions"] if r["action"] == "shell"],
@@ -171,7 +166,7 @@ class AgentPolicyTests(unittest.TestCase):
 
     def test_frontmatter_is_entirely_native_v2(self) -> None:
         native_fields = {"description", "mode", "model", "steps", "permissions"}
-        for name in AGENT_MODELS:
+        for name in AGENT_NAMES:
             with self.subTest(agent=name):
                 agent = frontmatter(name)
                 self.assertLessEqual(agent.keys(), native_fields)
@@ -234,7 +229,7 @@ class AgentPolicyTests(unittest.TestCase):
                     self.assertEqual("deny", permission(agent["permissions"], action))
 
     def test_reads_keep_secret_denials_after_general_allow(self) -> None:
-        for name in AGENT_MODELS:
+        for name in AGENT_NAMES:
             rules = frontmatter(name)["permissions"]
             self.assertEqual("allow", permission(rules, "read", "src/main.c"))
             for path in (".env", "app.env.local", "a.pem", "a.key", "a.p12", "a.pfx"):
@@ -254,17 +249,10 @@ class AgentPolicyTests(unittest.TestCase):
             with self.subTest(agent=name):
                 self.assertIn(f"steps: {steps}", agent_text(name))
 
-    def test_agents_use_github_copilot_models(self) -> None:
-        for name, model in AGENT_MODELS.items():
-            with self.subTest(agent=name):
-                text = agent_text(name)
-                self.assertIn(f"model: {model}", text)
-                self.assertNotIn("model: litellm/", text)
-
     def test_codebase_memory_permissions_allow_only_primary_local_indexing(
         self,
     ) -> None:
-        for name in ("embedded-engineer", *SUBAGENT_NAMES):
+        for name in AGENT_NAMES:
             with self.subTest(agent=name):
                 rules = frontmatter(name)["permissions"]
                 for tool in READ_ONLY_CODEBASE_MEMORY_TOOLS:
@@ -276,24 +264,27 @@ class AgentPolicyTests(unittest.TestCase):
                     self.assertNotEqual("allow", permission(rules, tool))
                 self.assertNotIn("codebase-memory-mcp_*", [r["action"] for r in rules])
 
-    def test_agents_keep_role_specific_reasoning_variants(self) -> None:
-        for name in AGENT_MODELS:
+    def test_subagents_use_role_specific_gateway_models(self) -> None:
+        for name in SUBAGENT_NAMES:
             with self.subTest(agent=name):
-                variant = "medium" if name == "embedded-build-analyzer" else "xhigh"
-                self.assertEqual(
-                    f"{AGENT_MODELS[name]}#{variant}", frontmatter(name)["model"]
+                expected = (
+                    "fpa-gateway/gpt-6-luna"
+                    if name == "embedded-build-analyzer"
+                    else "fpa-gateway/gpt-6.2-sol"
                 )
+                self.assertEqual(expected, frontmatter(name)["model"])
 
-    def test_project_defaults_to_sol_6_2_with_xhigh_reasoning(self) -> None:
+    def test_project_primary_agent_uses_the_configured_default_model(self) -> None:
         config = json.loads(
             (REPOSITORY_ROOT / ".opencode" / "opencode.json").read_text(
                 encoding="utf-8"
             )
         )
 
-        self.assertEqual("github-copilot/gpt-6.2-sol", config["model"])
-        model = config["providers"]["github-copilot"]["models"]["gpt-6.2-sol"]
-        self.assertEqual("xhigh", model["settings"]["reasoningEffort"])
+        self.assertEqual("embedded-engineer", config["default_agent"])
+        self.assertNotIn("model", config)
+        self.assertNotIn("model", frontmatter("embedded-engineer"))
+        self.assertNotIn("model", config.get("agents", {}).get("embedded-engineer", {}))
         self.assertNotIn("provider", config)
         self.assertNotIn("plugin", config)
         self.assertNotIn("subagent_depth", config)
@@ -404,7 +395,7 @@ class AgentPolicyTests(unittest.TestCase):
 
     def test_shell_hook_checks_complete_input_for_all_four_roles(self) -> None:
         run_plugin(
-            {name: {"permissions": []} for name in AGENT_MODELS}, "--check-shell-hook"
+            {name: {"permissions": []} for name in AGENT_NAMES}, "--check-shell-hook"
         )
 
     def test_plugin_ignores_absent_agents_and_preserves_unrelated_policy(self) -> None:

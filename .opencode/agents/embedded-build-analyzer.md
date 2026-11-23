@@ -1,7 +1,7 @@
 ---
 description: Traces embedded build systems, especially Makefiles, to identify toolchains, targets, configurations, artifacts, and hazards. Use before invoking an unfamiliar build or investigating build configuration.
 mode: subagent
-model: github-copilot/gpt-6-luna#medium
+model: fpa-gateway/gpt-6-luna
 steps: 12
 permissions:
   - { action: "*", resource: "*", effect: deny }

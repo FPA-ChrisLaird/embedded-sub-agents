@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import importlib.util
 import contextlib
+import fnmatch
 import io
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+
+import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 INSTALLER_PATH = REPOSITORY_ROOT / "scripts" / "install_opencode_agents.py"
@@ -272,6 +275,157 @@ class InstallOpenCodeAgentsTests(unittest.TestCase):
             ),
             INSTALLER.MANAGED_FILES,
         )
+
+    def test_erd_opt_in_only_renders_primary_and_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            checkout = root / "ERD specs, café #1"
+            (checkout / "erd").mkdir(parents=True)
+            (checkout / "README.md").touch()
+            config_dir = root / "config"
+            config_dir.mkdir()
+            config = config_dir / "opencode.jsonc"
+            config.write_bytes(b"// user-owned\n{}\n")
+            primary = config_dir / INSTALLER.PRIMARY_AGENT
+            opt_in = ["--config-dir", str(config_dir), "--erd-checkout", str(checkout)]
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(0, INSTALLER.main([*opt_in, "--dry-run"]))
+                self.assertEqual([config], list(config_dir.iterdir()))
+                self.assertEqual(0, INSTALLER.main(opt_in))
+            installed = primary.read_bytes()
+            profile = yaml.safe_load(installed.decode("utf-8").split("---", 2)[1])
+            rules = profile["permissions"]
+            path = checkout.resolve().as_posix()
+            self.assertEqual(
+                [
+                    {
+                        "action": "external_directory",
+                        "resource": f"{path}/*",
+                        "effect": "allow",
+                    },
+                    {"action": "edit", "resource": f"{path}/*", "effect": "deny"},
+                ],
+                [rule for rule in rules if rule["resource"].startswith(path + "/")],
+            )
+
+            def effect(action, resource):
+                return next(
+                    rule["effect"]
+                    for rule in reversed(rules)
+                    if fnmatch.fnmatchcase(action, rule["action"])
+                    and fnmatch.fnmatchcase(resource, rule["resource"])
+                )
+
+            self.assertEqual("allow", effect("external_directory", f"{path}/*"))
+            self.assertEqual("allow", effect("external_directory", f"{path}/erd/*"))
+            self.assertEqual("deny", effect("edit", f"{path}/erd/spec.lua"))
+            self.assertEqual("deny", effect("read", f"{path}/.env"))
+            self.assertEqual("ask", effect("external_directory", f"{path}-other/*"))
+            self.assertEqual("allow", effect("edit", f"{path}-other/spec.lua"))
+            for source, target in INSTALLER.MANAGED_FILES:
+                if target != INSTALLER.PRIMARY_AGENT:
+                    self.assertEqual(
+                        (REPOSITORY_ROOT / source).read_bytes(),
+                        (config_dir / target).read_bytes(),
+                    )
+            result = INSTALLER.install(
+                REPOSITORY_ROOT, config_dir, erd_checkout=checkout
+            )
+            self.assertTrue(all(line.startswith("unchanged ") for line in result))
+            moved = root / "new checkout"
+            (moved / "erd").mkdir(parents=True)
+            (moved / "README.md").touch()
+            INSTALLER.install(REPOSITORY_ROOT, config_dir, erd_checkout=moved)
+            self.assertNotIn(path.encode(), primary.read_bytes())
+            self.assertIn(moved.resolve().as_posix().encode(), primary.read_bytes())
+            INSTALLER.install(REPOSITORY_ROOT, config_dir, erd_checkout=checkout)
+            with self.assertRaisesRegex(
+                ValueError, "installed profile has local ERD rules"
+            ):
+                INSTALLER.install(REPOSITORY_ROOT, config_dir)
+            self.assertEqual(installed, primary.read_bytes())
+            INSTALLER.install(REPOSITORY_ROOT, config_dir, clear_erd_checkout=True)
+            self.assertEqual(
+                (REPOSITORY_ROOT / ".opencode" / INSTALLER.PRIMARY_AGENT).read_bytes(),
+                primary.read_bytes(),
+            )
+            self.assertEqual(b"// user-owned\n{}\n", config.read_bytes())
+
+    def test_invalid_erd_path_fails_before_installer_writes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            invalid = root / "not-a-checkout"
+            invalid.mkdir()
+            config = root / "config"
+            for checkout in (root / "missing", invalid, Path(root.anchor)):
+                with self.subTest(checkout=checkout):
+                    with self.assertRaises((ValueError, OSError)):
+                        INSTALLER.install(
+                            REPOSITORY_ROOT, config, erd_checkout=checkout
+                        )
+                    self.assertFalse(config.exists())
+
+    def test_erd_rule_rendering_rejects_ambiguous_anchor_and_path(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            checkout = Path(directory)
+            (checkout / "erd").mkdir()
+            (checkout / "README.md").touch()
+            anchor = INSTALLER.ERD_RULE_ANCHOR
+            for invalid in (b"", anchor, anchor + b"\n" + anchor + b"\n"):
+                with self.subTest(source=invalid), self.assertRaisesRegex(
+                    ValueError, "anchor"
+                ):
+                    INSTALLER.render_erd_rules(invalid, checkout)
+            with mock.patch.object(
+                Path, "resolve", return_value=checkout / "not*literal"
+            ):
+                with self.assertRaisesRegex(ValueError, "literal, non-root path"):
+                    INSTALLER.render_erd_rules(anchor + b"\n", checkout)
+
+            source = (
+                REPOSITORY_ROOT / ".opencode" / INSTALLER.PRIMARY_AGENT
+            ).read_bytes()
+            lines = source.splitlines()
+            lines.remove(anchor)
+            lines.insert(lines.index(INSTALLER.EXTERNAL_DIRECTORY_DEFAULT), anchor)
+            with self.assertRaisesRegex(ValueError, "anchor must follow"):
+                INSTALLER.render_erd_rules(b"\n".join(lines) + b"\n", checkout)
+            source = source.replace(b"permissions:", b"permissions:\n  " + anchor)
+            rendered = INSTALLER.render_erd_rules(source, checkout)
+            self.assertGreater(
+                rendered.index(INSTALLER.ERD_RULE_COMMENT),
+                rendered.index(INSTALLER.EXTERNAL_DIRECTORY_DEFAULT),
+            )
+
+    def test_erd_opt_in_rejects_empty_path_and_source_destination_alias(self) -> None:
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            INSTALLER.parse_args(["--erd-checkout", ""])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for source, _ in INSTALLER.MANAGED_FILES:
+                dest = root / source
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes((REPOSITORY_ROOT / source).read_bytes())
+            primary = root / ".opencode" / INSTALLER.PRIMARY_AGENT
+            before = primary.read_bytes()
+            (root / "erd").mkdir()
+            (root / "README.md").touch()
+            with self.assertRaisesRegex(ValueError, "into the source profile"):
+                INSTALLER.install(root, root / ".opencode", erd_checkout=root)
+            self.assertEqual(before, primary.read_bytes())
+
+    def test_upgrade_requires_confirmation_before_dropping_legacy_erd_rules(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_dir = Path(directory)
+            primary = config_dir / INSTALLER.PRIMARY_AGENT
+            primary.parent.mkdir()
+            original = INSTALLER.ERD_RULE_COMMENT + b"\r\n"
+            primary.write_bytes(original)
+            with self.assertRaisesRegex(ValueError, "--erd-checkout PATH"):
+                INSTALLER.install(REPOSITORY_ROOT, config_dir, dry_run=True)
+            self.assertEqual(original, primary.read_bytes())
 
     def test_android_skill_is_an_explicit_managed_file_installed_before_agents(
         self,

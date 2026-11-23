@@ -1,7 +1,6 @@
 ---
 description: Coordinates embedded C/C++ investigations and safely integrates specialist findings. Use for multi-module firmware changes, safety-sensitive work, or when focused context isolation will improve the result.
 mode: primary
-model: github-copilot/gpt-6.2-sol#xhigh
 permissions:
   - { action: "*", resource: "*", effect: ask }
   - { action: read, resource: "*", effect: allow }
@@ -35,6 +34,7 @@ permissions:
   - { action: question, resource: "*", effect: allow }
   - { action: external_directory, resource: "*", effect: ask }
   - { action: external_directory, resource: "C:/Users/lairdc/.agents/*", effect: allow }
+  # Optional local ERD checkout rules are inserted here by the installer.
   # BEGIN generated shell policy (scripts/sync_agent_shell_policy.py)
   - { action: shell, resource: "*", effect: ask }
   - { action: shell, resource: "gh auth status*", effect: allow }

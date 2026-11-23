@@ -12,6 +12,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+PRIMARY_AGENT = Path("agents/embedded-engineer.md")
 MANAGED_FILES = (
     (
         Path(".opencode") / "skills" / "android-device-workflow" / "SKILL.md",
@@ -21,10 +22,7 @@ MANAGED_FILES = (
         Path(".opencode") / "skills" / "erd-knowledge" / "SKILL.md",
         Path("skills") / "erd-knowledge" / "SKILL.md",
     ),
-    (
-        Path(".opencode") / "agents" / "embedded-engineer.md",
-        Path("agents") / "embedded-engineer.md",
-    ),
+    (Path(".opencode") / PRIMARY_AGENT, PRIMARY_AGENT),
     (
         Path(".opencode") / "agents" / "embedded-architecture-analyst.md",
         Path("agents") / "embedded-architecture-analyst.md",
@@ -43,6 +41,16 @@ MANAGED_FILES = (
     ),
 )
 LEGACY_PLUGIN = Path("plugins/embedded-repository-inspection.ts")
+ERD_RULE_ANCHOR = (
+    b"  # Optional local ERD checkout rules are inserted here by the installer."
+)
+ERD_RULE_COMMENT = (
+    b"  # Machine-local ERD checkout: keep this after the external directory catch-all."
+)
+EXTERNAL_DIRECTORY_DEFAULT = (
+    b'  - { action: external_directory, resource: "*", effect: ask }'
+)
+EDIT_DEFAULT = b'  - { action: edit, resource: "*", effect: allow }'
 
 
 def mentions_legacy_plugin(text: str) -> bool:
@@ -137,7 +145,51 @@ def files_match(source_path: Path, target_path: Path) -> bool:
     )
 
 
-def copy_atomically(source_path: Path, target_path: Path) -> None:
+def render_erd_rules(source: bytes, checkout: Path) -> bytes:
+    """Render the primary profile for one exact, canonical checkout directory."""
+    canonical = checkout.expanduser().resolve(strict=True)
+    path = canonical.as_posix()
+    if (
+        canonical == canonical.parent
+        or any(character in path for character in "*?\\")
+        or not path.isprintable()
+    ):
+        raise ValueError(f"ERD checkout requires a literal, non-root path: {canonical}")
+    if not (canonical / "README.md").is_file() or not (canonical / "erd").is_dir():
+        raise ValueError(f"Expected README.md and erd/ in ERD checkout: {canonical}")
+    lines = source.splitlines(keepends=True)
+    anchors = [
+        i for i, line in enumerate(lines) if line.rstrip(b"\r\n") == ERD_RULE_ANCHOR
+    ]
+    if len(anchors) != 1 or not lines[anchors[0]].endswith(b"\n"):
+        raise ValueError("Expected exactly one ERD rules anchor in the primary profile")
+    anchor = anchors[0]
+    profile_lines = source.splitlines()
+    if (
+        not profile_lines[0] == b"---"
+        or b"---" not in profile_lines[1:]
+        or anchor >= profile_lines.index(b"---", 1)
+        or any(
+            profile_lines.count(rule) != 1 or profile_lines.index(rule) >= anchor
+            for rule in (EXTERNAL_DIRECTORY_DEFAULT, EDIT_DEFAULT)
+        )
+    ):
+        raise ValueError("ERD rules anchor must follow the primary permission defaults")
+    newline = b"\r\n" if lines[anchor].endswith(b"\r\n") else b"\n"
+    resource = json.dumps(f"{path}/*", ensure_ascii=False)
+    entries = [
+        f"  - {{ action: {action}, resource: {resource}, effect: {effect} }}".encode(
+            "utf-8"
+        )
+        for action, effect in (("external_directory", "allow"), ("edit", "deny"))
+    ]
+    lines.insert(anchor + 1, newline.join((ERD_RULE_COMMENT, *entries, b"")))
+    return b"".join(lines)
+
+
+def copy_atomically(
+    source_path: Path, target_path: Path, *, rendered: bytes | None = None
+) -> None:
     """Copy a file through a sibling temporary file to avoid partial targets."""
     target_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None
@@ -149,8 +201,11 @@ def copy_atomically(source_path: Path, target_path: Path) -> None:
             delete=False,
         ) as temporary_file:
             temporary_path = Path(temporary_file.name)
-            with source_path.open("rb") as source_file:
-                shutil.copyfileobj(source_file, temporary_file)
+            if rendered is None:
+                with source_path.open("rb") as source_file:
+                    shutil.copyfileobj(source_file, temporary_file)
+            else:
+                temporary_file.write(rendered)
 
         shutil.copystat(source_path, temporary_path)
         temporary_path.replace(target_path)
@@ -161,22 +216,59 @@ def copy_atomically(source_path: Path, target_path: Path) -> None:
 
 
 def install(
-    repository_root: Path, config_dir: Path, dry_run: bool = False
+    repository_root: Path,
+    config_dir: Path,
+    dry_run: bool = False,
+    *,
+    erd_checkout: Path | None = None,
+    clear_erd_checkout: bool = False,
 ) -> list[str]:
     """Install managed files and return their status messages."""
     sources = managed_sources(repository_root)
     legacy_backup = preflight_upgrade(config_dir)
+    primary = config_dir / PRIMARY_AGENT
+    if erd_checkout is not None and clear_erd_checkout:
+        raise ValueError("Choose --erd-checkout or --clear-erd-checkout, not both")
+    if erd_checkout is not None:
+        primary_source = next(
+            source for source, target in sources if target == PRIMARY_AGENT
+        )
+        if primary.parent.resolve() == primary_source.parent.resolve() or (
+            primary.exists() and primary.samefile(primary_source)
+        ):
+            raise ValueError("Cannot render local ERD rules into the source profile")
+        rendered = render_erd_rules(primary_source.read_bytes(), erd_checkout)
+    else:
+        rendered = None
+        if (
+            not clear_erd_checkout
+            and primary.is_file()
+            and ERD_RULE_COMMENT in primary.read_bytes().splitlines()
+        ):
+            raise ValueError(
+                "The installed profile has local ERD rules. Pass --erd-checkout PATH "
+                "to keep them or --clear-erd-checkout to remove them."
+            )
     results: list[str] = []
     for source_path, target_relative_path in sources:
         target_path = config_dir / target_relative_path
-        if files_match(source_path, target_path):
+        content = rendered if target_relative_path == PRIMARY_AGENT else None
+        unchanged = (
+            files_match(source_path, target_path)
+            if content is None
+            else target_path.is_file() and target_path.read_bytes() == content
+        )
+        if unchanged:
             results.append(f"unchanged {target_path}")
             continue
 
         action = "install" if not target_path.exists() else "update"
         results.append(f"{action} {target_path}")
         if not dry_run:
-            copy_atomically(source_path, target_path)
+            if content is None:
+                copy_atomically(source_path, target_path)
+            else:
+                copy_atomically(source_path, target_path, rendered=content)
 
     if legacy_backup is not None:
         legacy, backup = legacy_backup
@@ -185,6 +277,12 @@ def install(
             legacy.rename(backup)
 
     return results
+
+
+def nonempty_path(value: str) -> Path:
+    if not value:
+        raise argparse.ArgumentTypeError("expected a non-empty ERD checkout path")
+    return Path(value)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -202,6 +300,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Show planned changes without writing files.",
     )
+    erd = parser.add_mutually_exclusive_group()
+    erd.add_argument(
+        "--erd-checkout",
+        type=nonempty_path,
+        metavar="PATH",
+        help="Allow primary-agent ERD lookups and deny editor writes in this checkout",
+    )
+    erd.add_argument(
+        "--clear-erd-checkout",
+        action="store_true",
+        help="Install the stock primary profile, removing its local ERD rules",
+    )
     return parser.parse_args(argv)
 
 
@@ -211,7 +321,13 @@ def main(argv: list[str] | None = None, script_path: Path | None = None) -> int:
     config_dir = args.config_dir.expanduser()
 
     try:
-        results = install(repository_root, config_dir, args.dry_run)
+        results = install(
+            repository_root,
+            config_dir,
+            args.dry_run,
+            erd_checkout=args.erd_checkout,
+            clear_erd_checkout=args.clear_erd_checkout,
+        )
     except (OSError, ValueError) as error:
         print(f"Installation failed: {error}", file=sys.stderr)
         return 1

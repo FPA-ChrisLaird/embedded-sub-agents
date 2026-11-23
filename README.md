@@ -47,7 +47,35 @@ then adjust links or scope summaries where needed. Keep the four-agent pilot
 until recurring work demonstrates a need for a separate context boundary;
 adding a skill does not add a device-execution agent.
 
-OpenCode automatically loads this configuration when started in this repository. See [project configuration](.opencode/opencode.json) for the default agent/model and [agent frontmatter](.opencode/agents/) for role-specific models, reasoning variants, and step limits. These defaults are repository-scoped and do not rewrite global model preferences. To install the agent suite globally, run the cross-platform Python 3 installer from the repository root:
+OpenCode automatically loads the [project configuration](.opencode/opencode.json)
+when started in this repository. It selects `embedded-engineer` as the default
+agent but leaves the model to your OpenCode settings. Set `model` in your global
+`opencode.json(c)` for new sessions, or use `/models` to switch an existing
+session. The [specialist agents](.opencode/agents/) use the F&P AI Gateway
+(`fpa-gateway`): GPT 6.2 Sol for architecture and C quality review, and GPT 6 Luna
+for build analysis. The gateway must be available in the project to delegate to
+them. Leave GPT 6 Luna on the gateway default: the gateway accepted requests
+with both valid and invalid effort values, so support for an override is
+unverified. To use the tested `xhigh` effort for GPT 6.2 Sol, merge the following
+into your global `opencode.json(c)`. This applies to all agents using that model,
+without requiring a `#variant` selector:
+
+```json
+{
+  "providers": {
+    "fpa-gateway": {
+      "models": {
+        "gpt-6.2-sol": {
+          "body": { "reasoning": { "effort": "xhigh" } }
+        }
+      }
+    }
+  }
+}
+```
+
+To install the agent suite globally, run the cross-platform Python 3 installer
+from the repository root:
 
 ```powershell
 py -3 .\scripts\install_opencode_agents.py
@@ -58,6 +86,28 @@ python3 ./scripts/install_opencode_agents.py
 ```
 
 The installer copies the four agent files, shared plugin, and on-demand `android-device-workflow` and `erd-knowledge` skills to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). Skills are installed before agents. It does not rewrite user configuration, so it preserves credentials, providers, models, MCP servers, and unrelated settings. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview changes or `--config-dir PATH` for a non-standard or test location. A global `agents.<id>.disabled: true` override can intentionally keep an agent unavailable during an A/B comparison with built-in Plan and Build. OpenCode V2 reloads watched configuration automatically; use `/reload` to force a reload.
+
+### Opt in to a local ERD checkout
+
+Pass `--erd-checkout PATH` to authorize `embedded-engineer` to consult one
+trusted ERD specification checkout without an external-directory prompt and
+deny OpenCode edit, write, and patch operations against that external path.
+For example, from PowerShell:
+
+```powershell
+py -3 .\scripts\install_opencode_agents.py --erd-checkout 'D:\path\to\documentation.erd-specification' --dry-run
+```
+
+Use your actual checkout directory, which must contain `README.md` and `erd/`.
+Remove `--dry-run` to apply the change. The installer writes the resolved path
+only into the local installed primary profile, not the repo or `opencode.json`.
+On later installs, pass the same path again, or explicitly remove the local
+rules with `--clear-erd-checkout`; the installer refuses to silently drop them.
+The rules do not grant specialist access or replace shell approvals and are not
+an operating-system read-only mount. They are intended for a firmware workspace
+that uses the installed primary profile. A project that supplies its own
+`embedded-engineer` profile (including this setup repo) can override the installed
+rules. Use the ERD checkout as an external reference, not as an editing workspace.
 
 ### Migrating an existing V1 installation
 
@@ -90,9 +140,9 @@ a dangling one, before copying any files.
 Each file replacement is atomic, but the suite update is not a transaction;
 if interrupted, resolve the reported error and rerun before relying on the suite.
 
-Models, reasoning variants, step limits, roles, and the shell safety policy are
-preserved. Permissions now use ordered `permissions` rules with `shell` and
-`subagent` actions; MCP permissions match the exact tool name registered by
+Step limits, roles, and the shell safety policy are preserved. Permissions now
+use ordered `permissions` rules with `shell` and `subagent` actions; MCP
+permissions match the exact tool name registered by
 OpenCode. V2 does not provide the former LSP diagnostics; use project
 lint/compiler checks.
 Skills remain in their existing V2-compatible layout and load on demand.
@@ -225,7 +275,7 @@ inv precommit       Run every pre-commit hook; formatting hooks may modify files
 inv install-agents  Run the default global OpenCode agent installer.
 ```
 
-`inv setup` prepares developer tooling only; it does not install or overwrite the global OpenCode suite. Use `inv install-agents` for the default installation, or run `scripts/install_opencode_agents.py` directly when using `--dry-run` or `--config-dir`.
+`inv setup` prepares developer tooling only; it does not install or overwrite the global OpenCode suite. Use `inv install-agents` for the default installation, or run `scripts/install_opencode_agents.py` directly when using `--dry-run`, `--config-dir`, or the ERD checkout options.
 
 The [commit hook configuration](.pre-commit-config.yaml) runs Black, Flake8,
 the full pytest suite (including for non-Python changes), and repository safety
