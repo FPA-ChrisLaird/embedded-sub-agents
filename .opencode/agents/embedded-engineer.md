@@ -34,6 +34,7 @@ permissions:
   - { action: question, resource: "*", effect: allow }
   - { action: external_directory, resource: "*", effect: ask }
   - { action: external_directory, resource: "C:/Users/lairdc/.agents/*", effect: allow }
+  # Optional local ERD checkout rules are inserted here by the installer.
   # BEGIN generated shell policy (scripts/sync_agent_shell_policy.py)
   - { action: shell, resource: "*", effect: ask }
   - { action: shell, resource: "gh auth status*", effect: allow }

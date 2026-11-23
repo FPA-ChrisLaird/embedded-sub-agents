@@ -87,6 +87,28 @@ python3 ./scripts/install_opencode_agents.py
 
 The installer copies the four agent files, shared plugin, and on-demand `android-device-workflow` and `erd-knowledge` skills to `~/.config/opencode/` (or `$XDG_CONFIG_HOME/opencode` when set). Skills are installed before agents. It does not rewrite user configuration, so it preserves credentials, providers, models, MCP servers, and unrelated settings. Rerun it after pulling an update to refresh the managed files. Use `--dry-run` to preview changes or `--config-dir PATH` for a non-standard or test location. A global `agents.<id>.disabled: true` override can intentionally keep an agent unavailable during an A/B comparison with built-in Plan and Build. OpenCode V2 reloads watched configuration automatically; use `/reload` to force a reload.
 
+### Opt in to a local ERD checkout
+
+Pass `--erd-checkout PATH` to authorize `embedded-engineer` to consult one
+trusted ERD specification checkout without an external-directory prompt and
+deny OpenCode edit, write, and patch operations against that external path.
+For example, from PowerShell:
+
+```powershell
+py -3 .\scripts\install_opencode_agents.py --erd-checkout 'D:\path\to\documentation.erd-specification' --dry-run
+```
+
+Use your actual checkout directory, which must contain `README.md` and `erd/`.
+Remove `--dry-run` to apply the change. The installer writes the resolved path
+only into the local installed primary profile, not the repo or `opencode.json`.
+On later installs, pass the same path again, or explicitly remove the local
+rules with `--clear-erd-checkout`; the installer refuses to silently drop them.
+The rules do not grant specialist access or replace shell approvals and are not
+an operating-system read-only mount. They are intended for a firmware workspace
+that uses the installed primary profile. A project that supplies its own
+`embedded-engineer` profile (including this setup repo) can override the installed
+rules. Use the ERD checkout as an external reference, not as an editing workspace.
+
 ### Migrating an existing V1 installation
 
 These definitions use native V2 configuration and the V2 plugin API; do not
@@ -253,7 +275,7 @@ inv precommit       Run every pre-commit hook; formatting hooks may modify files
 inv install-agents  Run the default global OpenCode agent installer.
 ```
 
-`inv setup` prepares developer tooling only; it does not install or overwrite the global OpenCode suite. Use `inv install-agents` for the default installation, or run `scripts/install_opencode_agents.py` directly when using `--dry-run` or `--config-dir`.
+`inv setup` prepares developer tooling only; it does not install or overwrite the global OpenCode suite. Use `inv install-agents` for the default installation, or run `scripts/install_opencode_agents.py` directly when using `--dry-run`, `--config-dir`, or the ERD checkout options.
 
 The [commit hook configuration](.pre-commit-config.yaml) runs Black, Flake8,
 the full pytest suite (including for non-Python changes), and repository safety
